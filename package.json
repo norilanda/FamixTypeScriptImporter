@@ -20,11 +20,6 @@
   },
   "exports": {
     ".": {
-      "import": "./dist/ts2famix-cli.js",
-      "require": "./dist/ts2famix-cli.js",
-      "types": "./dist/ts2famix-cli.d.ts"
-    },
-    "./core": {
       "import": "./dist/index.js",
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
