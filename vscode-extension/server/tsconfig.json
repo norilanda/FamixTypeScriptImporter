@@ -6,7 +6,7 @@
 		"moduleResolution": "nodenext",
 		"sourceMap": true,
 		"strict": true,
-		"outDir": "./out",
+		"outDir": "./dist",
 		"rootDir": "./src",
 		"baseUrl": "./",
 		"skipLibCheck": true,

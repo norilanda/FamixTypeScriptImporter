@@ -12,7 +12,7 @@
 		"vscode": "^1.99.0"
 	},
 	"activationEvents": [
-		"onLanguage:plaintext"
+		"onLanguage:typescript"
 	],
 	"main": "./client/dist/extension",
 	"contributes": {
