@@ -1,6 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as fs from "fs";
+import { Importer, FamixRepository } from 'ts2famix';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -13,10 +15,27 @@ export function activate(context: vscode.ExtensionContext) {
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('famix-typescript-analyzer.helloWorld', () => {
+	const disposable = vscode.commands.registerCommand('famix-typescript-analyzer.helloWorld', async () => {
 		// The code you place here will be executed every time your command is executed
 		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from famix-typescript-analyzer!');
+
+		const input = "C:\\Users\\ACER\\Projects\\moose\\Emojiopoly\\src\\app.ts";
+		const jsonFilePath = 'C:\\Users\\ACER\\Projects\\FamixTypeScriptImporter\\famix-typescript-analyzer\\JSONModels\\app.json';
+
+		const importer = new Importer();
+		let famixRep: FamixRepository;
+
+		const paths = new Array<string>();
+		paths.push(input as string);
+		famixRep = importer.famixRepFromPaths(paths);
+		const jsonOutput = famixRep.export({format: "json"});
+
+		fs.writeFile(jsonFilePath, jsonOutput, (err) => {
+			if (err) { throw err; }
+		});
+
+
+		vscode.window.showInformationMessage('The model is created: ' + jsonFilePath);
 	});
 
 	context.subscriptions.push(disposable);

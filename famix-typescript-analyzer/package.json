@@ -17,7 +17,19 @@
         "command": "famix-typescript-analyzer.helloWorld",
         "title": "Hello World"
       }
-    ]
+    ],
+
+    "configuration": {
+      "title": "Ts2Famix Extension",
+      "type": "object",
+      "properties": {
+        "ts2FamixExtension.outputFilePath": {
+          "type": "string",
+          "default": "Hello World",
+          "description": "String Example"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -47,6 +59,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "fs": "^0.0.1-security",
     "ts2famix": "file:.."
   }
 }
