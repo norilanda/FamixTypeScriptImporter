@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug ts2famix-cli",
+      "program": "${workspaceFolder}/src/ts2famix-cli.ts",
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      // TODO: change this to the correct path
+      "args": [
+        "--input",
+        "C:/Users/ACER/Projects/moose/Emojiopoly/tsconfig.json",
+        "--output",
+        "${workspaceFolder}/vscode-extension/JSONModels/app.json"
+      ],
+      "cwd": "${workspaceFolder}",
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ],
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+  ]
+}

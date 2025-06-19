@@ -7,6 +7,7 @@ import {
 	ServerOptions,
 	TransportKind
 } from 'vscode-languageclient/node';
+import { registerCommands } from './commands';
 
 let client: LanguageClient;
 
@@ -25,19 +26,18 @@ export function activate(context: ExtensionContext) {
 		}
 	};
 
-	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
-		// Register the server for plain text documents
 		documentSelector: [{ scheme: 'file', language: 'typescript' }],
 	};
 
-	// Create the language client and start the client.
 	client = new LanguageClient(
 		'ts2famixExtension',
 		'ts2famix Extension',
 		serverOptions,
 		clientOptions
 	);
+
+	registerCommands(context, client);
 
 	// Start the client. This will also launch the server
 	client.start();
