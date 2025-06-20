@@ -1,10 +1,10 @@
+ 
 import {
   createConnection,
 } from 'vscode-languageserver/node';
 import { getOutputFilePath } from './utils';
-import { Importer, FamixRepository } from 'ts2famix';
+import { generateModelForProject } from 'ts2famix';
 import * as fs from "fs";
-import { Project } from 'ts-morph';
 import path from 'path';
 
 export const registerCommandHandlers = (connection: ReturnType<typeof createConnection>) => {
@@ -20,20 +20,7 @@ export const registerCommandHandlers = (connection: ReturnType<typeof createConn
       ? baseUrl
       : path.join(baseUrl, 'tsconfig.json');
 
-    // const baseUrl = "C:/Users/ACER/Projects/moose/Emojiopoly";
-    // const tsConfigFilePath = "C:/Users/ACER/Projects/moose/Emojiopoly/tsconfig.json";
-
-    const project = new Project({
-      tsConfigFilePath,
-      compilerOptions: {
-        baseUrl: baseUrl,
-      }
-    });
-
-    const importer = new Importer();
-    const famixRep: FamixRepository = importer.famixRepFromProject(project);
-
-    const jsonOutput = famixRep.export({ format: "json" });
+    const jsonOutput = generateModelForProject(tsConfigFilePath, baseUrl);
     
     const jsonFilePath = await getOutputFilePath(connection);
 
