@@ -28,7 +28,7 @@ ts2famix
 - Press ▷ to run the launch config (F5).
 ### Manual testing of the extension
 - In the [Extension Development Host](https://code.visualstudio.com/api/get-started/your-first-extension#:~:text=Then%2C%20inside%20the%20editor%2C%20press%20F5.%20This%20will%20compile%20and%20run%20the%20extension%20in%20a%20new%20Extension%20Development%20Host%20window.) instance of VSCode, open a typescript project folder that contains a valid `tsconfig.json` file
-- Add the ouput model path
+- Add the output model path
   - Press Ctrl+Shift+P (Windows/Linux) or Cmd+Shift+P (macOS) - this should open the **Command Palette**.
   - Start writing and select the `Preferences: Open Settings (UI)` option. This will open User settings.
   - Toggle the `Extension` section. Scroll down, search and select `Ts2Famix`.
