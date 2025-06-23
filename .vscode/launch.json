@@ -10,12 +10,12 @@
         "-r",
         "ts-node/register"
       ],
-      // TODO: change this to the correct path
+      // NOTE: change this to your tsconfig.json path and output file path
       "args": [
         "--input",
-        "C:/Users/ACER/Projects/moose/Emojiopoly/tsconfig.json",
+        "<your-path-here/tsconfig.json>",
         "--output",
-        "${workspaceFolder}/vscode-extension/JSONModels/app.json"
+        "${workspaceFolder}/<your-path-here/file-name.json>"
       ],
       "cwd": "${workspaceFolder}",
       "sourceMaps": true,
