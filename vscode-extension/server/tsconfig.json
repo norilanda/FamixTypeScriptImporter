@@ -11,7 +11,6 @@
 		"rootDir": "./src",
 		"baseUrl": "./",
 		"skipLibCheck": true,
-        "preserveSymlinks": true,
 		"esModuleInterop": true,
 		"tsBuildInfoFile": "./dist/.tsbuildinfo",
 		"typeRoots": [	/* https://www.typescriptlang.org/tsconfig/#typeRoots */
