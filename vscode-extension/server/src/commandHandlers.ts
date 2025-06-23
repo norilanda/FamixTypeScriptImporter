@@ -29,6 +29,10 @@ export const registerCommandHandlers = (connection: ReturnType<typeof createConn
     const jsonOutput = generateModelForProject(tsConfigFilePath, baseUrl);
     
     const jsonFilePath = await getOutputFilePath(connection);
+    if (!jsonFilePath) {
+      connection.console.error('No output file path provided for model generation.');
+      return;
+    }
 
     fs.writeFile(jsonFilePath, jsonOutput, (err) => {
       if (err) { throw err; }
