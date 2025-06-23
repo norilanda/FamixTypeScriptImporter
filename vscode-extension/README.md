@@ -19,10 +19,8 @@ ts2famix
 ### Building the ts2famix library
 - Run `npm install` in the `ts2famix` folder
 - Run `npm run build` in the `ts2famix` folder to build the project
-- Run `npm link` in the `ts2famix` folder. It will create a global link for the ts2famix package in the npm global directory
 ### Building the vscode-extension
 - Run `npm install` in the `vscode-extension` folder. This installs all necessary npm modules in both the client and server folder
-- Run `npm link ts2famix` inside the `vscode-extension/server` folder
 - Open VS Code on the `vscode-extension` folder. It should be open as a workspace (root directory).
 - Press Ctrl+Shift+B to start compiling the client and server in [watch mode](https://code.visualstudio.com/docs/editor/tasks#:~:text=The%20first%20entry%20executes,the%20HelloWorld.js%20file.).
 - Switch to the Run and Debug View in the Sidebar (Ctrl+Shift+D).

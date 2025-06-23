@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "fs": "^0.0.1-security",
-    "ts2famix": "^2.0.4",
+    "ts2famix": "file:../../",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.11"
   },
