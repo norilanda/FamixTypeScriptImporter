@@ -11,13 +11,14 @@ import { registerCommands } from './commands';
 
 let client: LanguageClient;
 
+const extensionName = 'ts2famixExtension';
+const extensionDisplayName = 'ts2famix Extension';
+
 export function activate(context: ExtensionContext) {
 	const serverModule = context.asAbsolutePath(
 		path.join('server', 'dist', 'server.js')
 	);
 
-	// If the extension is launched in debug mode then the debug server options are used
-	// Otherwise the run options are used
 	const serverOptions: ServerOptions = {
 		run: { module: serverModule, transport: TransportKind.ipc },
 		debug: {
@@ -31,8 +32,8 @@ export function activate(context: ExtensionContext) {
 	};
 
 	client = new LanguageClient(
-		'ts2famixExtension',
-		'ts2famix Extension',
+		extensionName,
+		extensionDisplayName,
 		serverOptions,
 		clientOptions
 	);

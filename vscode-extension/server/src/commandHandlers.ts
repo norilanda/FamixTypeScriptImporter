@@ -7,18 +7,24 @@ import { generateModelForProject } from 'ts2famix';
 import * as fs from "fs";
 import path from 'path';
 
+interface GenerateModelForProjectParams {
+  filePath: string;
+}
+
+const methodName = 'generateModelForProject';
+const tsConfigFileExtension = 'tsconfig.json';
+
 export const registerCommandHandlers = (connection: ReturnType<typeof createConnection>) => {
-  // TODO: params type
-  connection.onRequest("generateModelForProject", async (params) => {
-    const baseUrl = params?.filePath;
+  connection.onRequest(methodName, async (params: GenerateModelForProjectParams) => {
+    const baseUrl = params.filePath;
     if (!baseUrl) {
       connection.console.error('No filePath provided for model generation.');
       return;
     }
     
-    const tsConfigFilePath = baseUrl.endsWith('tsconfig.json')
+    const tsConfigFilePath = baseUrl.endsWith(tsConfigFileExtension)
       ? baseUrl
-      : path.join(baseUrl, 'tsconfig.json');
+      : path.join(baseUrl, tsConfigFileExtension);
 
     const jsonOutput = generateModelForProject(tsConfigFilePath, baseUrl);
     

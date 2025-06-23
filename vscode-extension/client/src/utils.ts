@@ -3,7 +3,7 @@ import path from 'path';
 import * as fs from 'fs';
 
 export const getBaseUrl = (document: vscode.TextDocument) => {
-	// won't work if the root folder is not a workspace folder
+	// NOTE: won't work if the root folder is not a workspace folder
 	const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
 	if (workspaceFolder) {
 		const tsConfigPath = path.join(workspaceFolder.uri.fsPath, 'tsconfig.json');
