@@ -12,7 +12,7 @@ describe('Utils', () => {
 		const mockConnection = {
 			workspace: {
 			getConfiguration: jest.fn().mockResolvedValue({
-				outputFilePath: jsonFilePath
+				FamixModelOutputFilePath: jsonFilePath
 			})
 			}
 		} as unknown as Connection;
