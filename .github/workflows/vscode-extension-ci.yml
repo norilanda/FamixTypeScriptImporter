@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies for the ts2famix project
         run: npm ci
 
+      - name: Build the ts2famix project
+        run: npm run build
+
       - name: Install dependencies for the VS Code extension
         working-directory: ./vscode-extension
         run: npm install
