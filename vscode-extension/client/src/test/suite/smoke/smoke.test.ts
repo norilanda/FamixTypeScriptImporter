@@ -24,4 +24,22 @@ suite('Smoke Tests', () => {
     assert.ok(client, 'Language client should be available');
     assert.ok(client.isRunning(), 'Client should be running');
   });
+
+  test('Client-server connection is established', async function() {   
+    const extensionId = TestHelper.getExtensionId();
+    await TestHelper.waitForExtensionActivation(extensionId);
+    
+    const client = await TestHelper.waitForLanguageClient(extensionId);
+    
+    try {
+      const mockFilePath = 'c:\\path\\to\\mock\\tsconfig.json';
+      const response = await client.sendRequest<{success: boolean; error?: string; outputPath?: string}>('generateModelForProject', { filePath: mockFilePath });
+      
+      assert.ok(response, 'Should receive a response from the server');
+      assert.strictEqual(response.success, false, 'Response should indicate failure due to mock path');
+      assert.ok(response.error, 'Response should include an error message');
+    } catch (error) {
+      assert.fail(`Failed to communicate with the server: ${error}`);
+    }
+  });
 });
