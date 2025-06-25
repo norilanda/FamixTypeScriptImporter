@@ -43,7 +43,7 @@ export const registerCommandHandlers = (connection: ReturnType<typeof createConn
         fs.mkdirSync(outputDir, { recursive: true });
       }
 
-      fs.writeFileSync(jsonFilePath, jsonOutput);
+      await fs.promises.writeFile(jsonFilePath, jsonOutput);
       
       return { success: true, outputPath: jsonFilePath };
     } catch (error) {
