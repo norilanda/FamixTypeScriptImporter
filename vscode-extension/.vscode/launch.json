@@ -48,6 +48,29 @@
         "${workspaceFolder}/**",
         "!**/node_modules/**"
       ],
+    },
+      {
+      "name": "Extension Smoke Tests",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionTestsPath=${workspaceFolder}/client/dist/test/suite/index",
+        "--disable-extensions"
+      ],
+      "env": {
+        "MOCHA_GREP": "smoke"
+      },
+      "outFiles": [
+        "${workspaceFolder}/client/dist/**/*.js",
+        "${workspaceRoot}/server/dist/**/*.js",
+      ],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
     }
 	]
 }

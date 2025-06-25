@@ -42,6 +42,10 @@ export async function activate(context: ExtensionContext) {
 
 	// Start the client. This will also launch the server
 	await client.start();
+
+	return {
+		client: client
+	};
 }
 
 export function deactivate(): Thenable<void> | undefined {
