@@ -28,7 +28,7 @@
       }
 		},
     {
-      "name": "Extension Integration Tests",
+      "name": "Integration Tests",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
@@ -50,7 +50,7 @@
       ],
     },
       {
-      "name": "Extension Smoke Tests",
+      "name": "Smoke Tests",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
