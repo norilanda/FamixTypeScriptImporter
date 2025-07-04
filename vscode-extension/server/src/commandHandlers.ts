@@ -2,7 +2,7 @@
 import {
     createConnection,
 } from 'vscode-languageserver/node';
-import { getOutputFilePath } from './utils';
+import { getOutputFilePath, getTsConfigFilePath } from './utils';
 import { generateModelForProject } from 'ts2famix';
 import * as fs from "fs";
 import path from 'path';
@@ -12,7 +12,6 @@ interface GenerateModelForProjectParams {
 }
 
 const methodName = 'generateModelForProject';
-const tsConfigFileExtension = 'tsconfig.json';
 
 export const registerCommandHandlers = (connection: ReturnType<typeof createConnection>) => {
     connection.onRequest(methodName, async (params: GenerateModelForProjectParams) => {
@@ -23,9 +22,7 @@ export const registerCommandHandlers = (connection: ReturnType<typeof createConn
                 return { success: false, error: 'No filePath provided' };
             }
       
-            const tsConfigFilePath = baseUrl.endsWith(tsConfigFileExtension)
-                ? baseUrl
-                : path.join(baseUrl, tsConfigFileExtension);
+            const tsConfigFilePath = getTsConfigFilePath(baseUrl);
 
             const jsonOutput = generateModelForProject(tsConfigFilePath, baseUrl);
       

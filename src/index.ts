@@ -23,3 +23,12 @@ export const generateModelForProject = (tsConfigFilePath: string, baseUrl: strin
 
     return jsonOutput;
 };
+
+export const getTsMorphProject = (tsConfigFilePath: string, baseUrl: string) => {
+    return new Project({
+        tsConfigFilePath,
+        compilerOptions: {
+            baseUrl: baseUrl,
+        }
+    });
+};
