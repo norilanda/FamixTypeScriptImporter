@@ -258,7 +258,9 @@ export class EntityDictionary {
         let fmxFile: Famix.ScriptEntity; // | Famix.Module;
 
         const fileName = f.getBaseName();
-        const fullyQualifiedFilename = f.getFilePath();
+        // USE getFQN INSTEAD OF getFilePath HERE ?
+        // const fullyQualifiedFilename = f.getFilePath();
+        const fullyQualifiedFilename = FQNFunctions.getFQN(f, f.getFilePath());
         const foundFileName = this.fmxFileMap.get(fullyQualifiedFilename);
         if (!foundFileName) {
             if (isModule) {
@@ -1368,16 +1370,20 @@ export class EntityDictionary {
 
         }
 
-        this.fmxElementObjectMap.set(superClass, inheritedClassOrInterface);
+        // // WHY DO WE NEED THESE LINES? WE HAVE ALREADY ADDED THIS CLASS TO THE FAMIX REPOSITORY
+        // // IS IT CONNECTED WITH USING createOrGetFamixInterfaceStub?
+        // this.fmxElementObjectMap.set(superClass, inheritedClassOrInterface);
 
-        this.makeFamixIndexFileAnchor(inheritedClassOrInterface, superClass);
+        // this.makeFamixIndexFileAnchor(inheritedClassOrInterface, superClass);
 
-        this.famixRep.addElement(superClass);
+        // this.famixRep.addElement(superClass);
 
         fmxInheritance.subclass = subClass;
         fmxInheritance.superclass = superClass;
 
         this.famixRep.addElement(fmxInheritance);
+        // SHOULD THERE BE A SOURCE ANCHOR FOR INHERITANCE?
+
         // no FQN for inheritance
 
         // We don't map inheritance to the source code element because there are two elements (super, sub)
