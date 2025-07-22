@@ -4,7 +4,8 @@ import { calculate } from "../lib/ts-complex/cyclomatic-service";
 import * as fs from 'fs';
 import { logger } from "../analyze";
 import { getFQN } from "../fqn";
-import { EntityDictionary, InvocableType } from "src/famix_functions/EntityDictionary";
+import { EntityDictionary, InvocableType } from "../famix_functions/EntityDictionary";
+import { SourceFileDataArray, SourceFileDataMap, SourceFileDataSet } from "../famix_functions/SourceFileData";
 
 export type AccessibleTSMorphElement = ParameterDeclaration | VariableDeclaration | PropertyDeclaration | EnumMember;
 export type FamixID = number;
@@ -25,20 +26,42 @@ function isSourceFileAModule(sourceFile: SourceFile): boolean {
 export class TypeScriptToFamixProcessor  {
     private entityDictionary: EntityDictionary;
 
-    public methodsAndFunctionsWithId = new Map<number, InvocableType>(); // Maps the Famix method, constructor, getter, setter and function ids to their ts-morph method, constructor, getter, setter or function object
-    
-    public accessMap = new Map<FamixID, AccessibleTSMorphElement>(); // Maps the Famix parameter, variable, property and enum value ids to their ts-morph parameter, variable, property or enum member object
-    public classes = new Array<ClassDeclaration>(); // Array of all the classes of the source files
-    public interfaces = new Array<InterfaceDeclaration>(); // Array of all the interfaces of the source files
-    public modules = new Array<SourceFile>(); // Array of all the source files which are modules
-    public listOfExportMaps = new Array<ReadonlyMap<string, ExportedDeclarations[]>>(); // Array of all the export maps
-    private processedNodesWithTypeParams = new Set<number>(); // Set of nodes that have been processed and have type parameters
+    public methodsAndFunctionsWithId = new SourceFileDataMap<number, InvocableType>(); // Maps the Famix method, constructor, getter, setter and function ids to their ts-morph method, constructor, getter, setter or function object
+
+    public accessMap = new SourceFileDataMap<FamixID, AccessibleTSMorphElement>(); // Maps the Famix parameter, variable, property and enum value ids to their ts-morph parameter, variable, property or enum member object
+    public classes = new SourceFileDataArray<ClassDeclaration>(); // Array of all the classes of the source files
+    public interfaces = new SourceFileDataArray<InterfaceDeclaration>(); // Array of all the interfaces of the source files
+    public modules = new SourceFileDataArray<SourceFile>(); // Array of all the source files which are modules
+    public listOfExportMaps = new SourceFileDataArray<ReadonlyMap<string, ExportedDeclarations[]>>(); // Array of all the export maps
+    private processedNodesWithTypeParams = new SourceFileDataSet<number>(); // Set of nodes that have been processed and have type parameters
 
     private currentCC: { [key: string]: number }; // Stores the cyclomatic complexity metrics for the current source file
 
     constructor(entityDictionary: EntityDictionary) {
         this.entityDictionary = entityDictionary;
         this.currentCC = {};
+    }
+
+    private setCurrentSourceFileName(sourceFileName: string): void {
+        this.methodsAndFunctionsWithId.setSourceFileName(sourceFileName);
+        this.accessMap.setSourceFileName(sourceFileName);
+        this.classes.setSourceFileName(sourceFileName);
+        this.interfaces.setSourceFileName(sourceFileName);
+        this.modules.setSourceFileName(sourceFileName);
+        this.listOfExportMaps.setSourceFileName(sourceFileName);
+        this.processedNodesWithTypeParams.setSourceFileName(sourceFileName);
+
+        this.entityDictionary.setCurrentSourceFileName(sourceFileName);
+    }
+
+    public removeNodesBySourceFile(sourceFile: string) {
+        this.methodsAndFunctionsWithId.removeBySourceFileName(sourceFile);
+        this.accessMap.removeBySourceFileName(sourceFile);
+        this.classes.removeBySourceFileName(sourceFile);
+        this.interfaces.removeBySourceFileName(sourceFile);
+        this.modules.removeBySourceFileName(sourceFile);
+        this.listOfExportMaps.removeBySourceFileName(sourceFile);
+        this.processedNodesWithTypeParams.removeBySourceFileName(sourceFile);
     }
 
     /**
@@ -102,7 +125,8 @@ export class TypeScriptToFamixProcessor  {
             } else {
                 this.currentCC = {};
             }
-    
+
+            this.setCurrentSourceFileName(file.getFilePath());
             this.processFile(file);
         });
     }
@@ -956,7 +980,7 @@ export class TypeScriptToFamixProcessor  {
      * @param classes An array of classes
      * @param interfaces An array of interfaces
      */
-    public processInheritances(classes: ClassDeclaration[], interfaces: InterfaceDeclaration[]): void {
+    public processInheritances(classes: ClassDeclaration[], interfaces: InterfaceDeclaration[], allInterfaces: InterfaceDeclaration[]): void {
         logger.info(`Creating inheritances:`);
         classes.forEach(cls => {
             logger.debug(`Checking class inheritance for ${cls.getName()}`);
@@ -975,7 +999,7 @@ export class TypeScriptToFamixProcessor  {
                 }
     
                 logger.debug(`Checking interface inheritance for ${cls.getName()}`);
-                const implementedInterfaces = this.getImplementedOrExtendedInterfaces(interfaces, cls);
+                const implementedInterfaces = this.getImplementedOrExtendedInterfaces(allInterfaces, cls);
                 implementedInterfaces.forEach(implementedIF => {
                     this.entityDictionary.createOrGetFamixInheritance(cls, implementedIF);
                     logger.debug(`class: ${cls.getName()}, (${cls.getType().getText()}), impInter: ${(implementedIF instanceof InterfaceDeclaration) ? implementedIF.getName() : implementedIF.getExpression().getText()}, (${(implementedIF instanceof InterfaceDeclaration) ? implementedIF.getType().getText() : implementedIF.getExpression().getText()})`);
@@ -985,7 +1009,7 @@ export class TypeScriptToFamixProcessor  {
         interfaces.forEach(interFace => {
             try {
                 logger.debug(`Checking interface inheritance for ${interFace.getName()}`);
-                const extendedInterfaces = this.getImplementedOrExtendedInterfaces(interfaces, interFace);
+                const extendedInterfaces = this.getImplementedOrExtendedInterfaces(allInterfaces, interFace);
                 extendedInterfaces.forEach(extendedInterface => {
                     this.entityDictionary.createOrGetFamixInheritance(interFace, extendedInterface);
     

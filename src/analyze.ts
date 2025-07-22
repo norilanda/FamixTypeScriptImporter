@@ -1,4 +1,4 @@
-import { Project } from "ts-morph";
+import { Project, SourceFile } from "ts-morph";
 import * as fs from 'fs';
 import { FamixRepository } from "./lib/famix/famix_repository";
 import { Logger } from "tslog";
@@ -59,20 +59,31 @@ export class Importer {
     private processEntities(project: Project): void {
         const onlyTypeScriptFiles = project.getSourceFiles().filter(f => f.getFilePath().endsWith('.ts'));
         this.processFunctions.processFiles(onlyTypeScriptFiles);
-        const accesses = this.processFunctions.accessMap;
-        const methodsAndFunctionsWithId = this.processFunctions.methodsAndFunctionsWithId;
-        const classes = this.processFunctions.classes;
-        const interfaces = this.processFunctions.interfaces;
-        const modules = this.processFunctions.modules;
-        const exports = this.processFunctions.listOfExportMaps;
+        
+        this.processReferences(onlyTypeScriptFiles);
+    }
 
-        this.processFunctions.processImportClausesForImportEqualsDeclarations(project.getSourceFiles(), exports);
-        this.processFunctions.processImportClausesForModules(modules, exports);
-        this.processFunctions.processAccesses(accesses);
-        this.processFunctions.processInvocations(methodsAndFunctionsWithId);
-        this.processFunctions.processInheritances(classes, interfaces);
-        this.processFunctions.processConcretisations(classes, interfaces, methodsAndFunctionsWithId);
+    private processReferences(sourceFiles: SourceFile[]): void {
+        const sourceFilesNames = sourceFiles.map(f => f.getFilePath());
 
+        sourceFilesNames.forEach(fileName => {
+            const accesses = this.processFunctions.accessMap.getBySourceFileName(fileName);
+            const methodsAndFunctionsWithId = this.processFunctions.methodsAndFunctionsWithId.getBySourceFileName(fileName);
+            const classes = this.processFunctions.classes.getBySourceFileName(fileName);
+            const interfaces = this.processFunctions.interfaces.getBySourceFileName(fileName);
+            const modules = this.processFunctions.modules.getBySourceFileName(fileName);
+            const exports = this.processFunctions.listOfExportMaps.getBySourceFileName(fileName);
+
+            this.entityDictionary.setCurrentSourceFileName(fileName);
+
+            // TODO: check if it is working correctly
+            this.processFunctions.processImportClausesForImportEqualsDeclarations(this.project.getSourceFiles(), exports);
+            this.processFunctions.processImportClausesForModules(modules, exports);
+            this.processFunctions.processAccesses(accesses);
+            this.processFunctions.processInvocations(methodsAndFunctionsWithId);
+            this.processFunctions.processInheritances(classes, interfaces, this.processFunctions.interfaces.getAll());
+            this.processFunctions.processConcretisations(classes, interfaces, methodsAndFunctionsWithId);
+        });
     }
 
     /**
@@ -103,11 +114,25 @@ export class Importer {
 
         //const famixRep = this.famixRepFromPaths(sourceFileNames);
 
+        this.project = project;
         this.initFamixRep(project);
 
         this.processEntities(project);
 
         return this.entityDictionary.famixRep;
+    }
+
+    public updateFamixModelIncrementally(sourceFiles: SourceFile[]): void {
+        sourceFiles.forEach(
+            file => {
+                this.entityDictionary.famixRep.removeEntitiesBySourceFile(file.getFilePath());
+                this.entityDictionary.removeEntitiesBySourceFilePath(file.getFilePath());
+                this.processFunctions.removeNodesBySourceFile(file.getFilePath());
+            }
+        );
+
+        this.processFunctions.processFiles(sourceFiles);
+        this.processReferences(sourceFiles);
     }
 
     private initFamixRep(project: Project): void {
