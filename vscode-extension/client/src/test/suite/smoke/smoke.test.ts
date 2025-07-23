@@ -25,12 +25,13 @@ suite('Smoke Tests', () => {
         assert.ok(client.isRunning(), 'Client should be running');
     });
 
-    test('Client-server connection is established', async function() {   
+    test('Client-server connection is established', async function() {
         const extensionId = TestHelper.getExtensionId();
         await TestHelper.waitForExtensionActivation(extensionId);
     
         const client = await TestHelper.waitForLanguageClient(extensionId);
-    
+        await TestHelper.waitForServerToInitialize(extensionId);
+  
         try {
             const mockFilePath = 'c:\\path\\to\\mock\\tsconfig.json';
             const response = await client.sendRequest<{success: boolean; error?: string; outputPath?: string}>('generateModelForProject', { filePath: mockFilePath });
