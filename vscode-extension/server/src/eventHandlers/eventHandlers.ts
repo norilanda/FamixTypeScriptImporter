@@ -1,9 +1,9 @@
 import { createConnection } from 'vscode-languageserver/node';
 import { onDidChangeWatchedFiles } from './onDidChangeWatchedFilesHandler';
-import { FileChangesMap } from '../model.ts/FileChangesMap';
-import { Project } from 'ts-morph';
+import { FileChangesMap } from '../model/FileChangesMap';
+import { FamixProjectManager } from '../model/FamixProjectManager';
 
-export const registerEventHandlers = (connection: ReturnType<typeof createConnection>, tsMorphProject: Project) => {
+export const registerEventHandlers = (connection: ReturnType<typeof createConnection>, famixProjectManager: FamixProjectManager) => {
     const fileChangesMap = new FileChangesMap();
     // TODO: consider changing the event type to onDidSaveTextDocument.
     // The onDidChangeWatchedFiles event is triggered for all file changes, including external like git branch checkout.
@@ -19,5 +19,5 @@ export const registerEventHandlers = (connection: ReturnType<typeof createConnec
     // We may take a look on how ESLint or similar tools handles this.
 
     // TODO: consider removing debounce
-    connection.onDidChangeWatchedFiles(params => onDidChangeWatchedFiles(params, fileChangesMap, tsMorphProject));
+    connection.onDidChangeWatchedFiles(params => onDidChangeWatchedFiles(params, fileChangesMap, famixProjectManager));
 };
