@@ -5,6 +5,7 @@ import { Logger } from "tslog";
 import { EntityDictionary, EntityDictionaryConfig } from "./famix_functions/EntityDictionary";
 import path from "path";
 import { TypeScriptToFamixProcessor  } from "./analyze_functions/process_functions";
+import { getClassesFromSourceFile } from "./famix_functions/helpersTsMorphElementsProcessing";
 
 export const logger = new Logger({ name: "ts2famix", minLevel: 2 });
 
@@ -64,12 +65,12 @@ export class Importer {
     }
 
     private processReferences(sourceFiles: SourceFile[]): void {
-        const sourceFilesNames = sourceFiles.map(f => f.getFilePath());
-
-        sourceFilesNames.forEach(fileName => {
+        sourceFiles.forEach(sourceFile => {
+            const fileName = sourceFile.getFilePath();
             const accesses = this.processFunctions.accessMap.getBySourceFileName(fileName);
             const methodsAndFunctionsWithId = this.processFunctions.methodsAndFunctionsWithId.getBySourceFileName(fileName);
-            const classes = this.processFunctions.classes.getBySourceFileName(fileName);
+            // const classes = this.processFunctions.classes.getBySourceFileName(fileName);
+            const classes = getClassesFromSourceFile(sourceFile);
             const interfaces = this.processFunctions.interfaces.getBySourceFileName(fileName);
             const modules = this.processFunctions.modules.getBySourceFileName(fileName);
             const exports = this.processFunctions.listOfExportMaps.getBySourceFileName(fileName);
@@ -126,8 +127,8 @@ export class Importer {
         sourceFiles.forEach(
             file => {
                 this.entityDictionary.famixRep.removeEntitiesBySourceFile(file.getFilePath());
-                this.entityDictionary.removeEntitiesBySourceFilePath(file.getFilePath());
-                this.processFunctions.removeNodesBySourceFile(file.getFilePath());
+                // this.entityDictionary.removeEntitiesBySourceFilePath(file.getFilePath());
+                // this.processFunctions.removeNodesBySourceFile(file.getFilePath());
             }
         );
 

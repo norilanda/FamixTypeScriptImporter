@@ -10,7 +10,8 @@ import { FamixEntitiesTracker } from "./FamixEntitiesTracker";
  */
 export class FamixRepository {
     private elements = new Set<FamixBaseElement>(); // All Famix elements
-    private famixClasses = new Set<Class>(); // All Famix classes
+    // DO WE NEED THESE SETS? THEY ARE ONLY USED IN METHODS THAT ARE USED IN TESTS
+    // private famixClasses = new Set<Class>(); // All Famix classes
     private famixInterfaces = new Set<Interface>(); // All Famix interfaces
     private famixModules = new Set<Module>(); // All Famix namespaces
     private famixMethods = new Set<Method>(); // All Famix methods
@@ -44,7 +45,7 @@ export class FamixRepository {
      * @param fullyQualifiedName A fully qualified name
      * @returns The Famix entity corresponding to the fully qualified name or undefined if it doesn't exist
      */
-    public getFamixEntityByFullyQualifiedName(fullyQualifiedName: string): FamixBaseElement | undefined {
+    public getFamixEntityByFullyQualifiedName<T extends FamixBaseElement>(fullyQualifiedName: string): T | undefined {
         const allEntities = Array.from(this.elements.values()).filter(e => e instanceof NamedEntity) as Array<NamedEntity>;
         const entity = allEntities.find(e => 
             // {console.log(`namedEntity: ${e.fullyQualifiedName}`); 
@@ -52,7 +53,7 @@ export class FamixRepository {
             e.fullyQualifiedName === fullyQualifiedName
         // }
         );
-        return entity;
+        return entity as T | undefined;
     }
 
     // Method to get Famix access by accessor and variable
@@ -88,9 +89,10 @@ export class FamixRepository {
     public removeElements(entities: FamixBaseElement[]): void {
         for (const entity of entities) {
             this.elements.delete(entity);
-            if (entity instanceof Class) {
-                this.famixClasses.delete(entity);
-            } else if (entity instanceof Interface) {
+            // if (entity instanceof Class) {
+            //     this.famixClasses.delete(entity);
+            // } else 
+                if (entity instanceof Interface) {
                 this.famixInterfaces.delete(entity);
             } else if (entity instanceof Module) {
                 this.famixModules.delete(entity);
@@ -160,7 +162,9 @@ export class FamixRepository {
      * @returns The Famix class corresponding to the name or undefined if it doesn't exist
      */
     public _getFamixClass(fullyQualifiedName: string): Class | undefined {
-        return Array.from(this.famixClasses.values()).find(ns => ns.fullyQualifiedName === fullyQualifiedName);
+        return Array.from(this.elements.values())
+            .filter(e => e instanceof Class)
+            .find(ns => ns.fullyQualifiedName === fullyQualifiedName);
     }
 
     /**
@@ -275,9 +279,10 @@ export class FamixRepository {
      */
     public addElement(element: FamixBaseElement): void {
         logger.debug(`Adding Famix element ${element.constructor.name} with id ${element.id}`);
-        if (element instanceof Class) {
-            this.famixClasses.add(element);
-        } else if (element instanceof Interface) {
+        // if (element instanceof Class) {
+        //     this.famixClasses.add(element);
+        // } else 
+            if (element instanceof Interface) {
             this.famixInterfaces.add(element);
         } else if (element instanceof Module) {
             this.famixModules.add(element);

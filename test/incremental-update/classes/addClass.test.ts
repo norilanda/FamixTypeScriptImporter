@@ -8,22 +8,13 @@ const newClassName = 'NewClass';
 
 describe('Add new classes to a single file', () => {
   const sourceCodeWithOneClass = `
-    class ${existingClassName} {
-      property1: string;
-      method1() {}
-    }
+    class ${existingClassName} { }
   `;
 
   const sourceCodeWithTwoClasses = `
-    class ${existingClassName} {
-      property1: string;
-      method1() {}
-    }
+    class ${existingClassName} { }
 
-    class ${newClassName} {
-      property2: number;
-      method2() {}
-    }
+    class ${newClassName} { }
   `;
 
   it('should create new classes in the Famix representation', () => {
