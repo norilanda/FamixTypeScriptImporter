@@ -1,14 +1,14 @@
-import { FileChangeAction } from './../../dist/model.ts/FileChangesMap.d';
+import { FileChangeAction } from './FileChangesMap';
 import { FileSystemRefreshResult, Project, SourceFile } from 'ts-morph';
 import { FamixRepository, Importer } from 'ts2famix';
 import * as url from 'url';
-import * as fs from "fs";
+import { FamixModelExporter } from './FamixModelExporter';
 
 export class FamixProjectManager {
     private _importer: Importer;
     private _project: Project | undefined;
     private _famixRep: FamixRepository | undefined;
-    private _outputFilePath: string | undefined;
+    private _modelExporter: FamixModelExporter;
 
     private get project (): Project {
         if (!this._project) {
@@ -17,13 +17,21 @@ export class FamixProjectManager {
         return this._project;
     }
 
-    constructor() {
+    constructor(famixModelExporter: FamixModelExporter) {
         this._importer = new Importer();
+        this._modelExporter = famixModelExporter;
     }
 
     public initializeFamixModel(project: Project): void {
         this._project = project;
         this._famixRep = this._importer.famixRepFromProject(project);
+    }
+
+    public async generateFamixModelFromScratch(project: Project): Promise<void> {
+        this._importer = new Importer();
+        this._project = project;
+        this._famixRep = this._importer.famixRepFromProject(project);
+        await this.generateNewJsonForFamixModel();
     }
 
     public updateTsMorphProject = async (fileChangesMap: ReadonlyMap<string, FileChangeAction>): Promise<SourceFile[]> => {
@@ -73,15 +81,7 @@ export class FamixProjectManager {
     public async generateNewJsonForFamixModel() {
         if (!this._famixRep) {
             throw new Error('Famix model is not initialized.');
-        } else if (!this._outputFilePath) {
-            throw new Error('Output file path is not set.');
         }
-        const jsonOutput = this._famixRep.export({ format: "json" });
-
-        await fs.promises.writeFile(this._outputFilePath, jsonOutput);
-    }
-
-    public setOutputFilePath(outputFilePath: string) {
-        this._outputFilePath = outputFilePath;
+        await this._modelExporter.exportModelToFile(this._famixRep);
     }
 }

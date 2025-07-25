@@ -14,13 +14,16 @@ import {
 import { registerCommandHandlers } from './commandHandlers';
 import { registerEventHandlers } from './eventHandlers';
 import { getTsMorphProject } from 'ts2famix';
-import { findTypeScriptProject, getOutputFilePath } from './utils';
+import { findTypeScriptProject } from './utils';
 import { FamixProjectManager } from './model/FamixProjectManager';
+import { FamixModelExporter } from './model/FamixModelExporter';
 
 let hasDidChangeWatchedFilesCapability = false;
-const famixProjectManager = new FamixProjectManager();
 
 const connection = createConnection(ProposedFeatures.all);
+
+const famixModelExporter = new FamixModelExporter(connection);
+const famixProjectManager = new FamixProjectManager(famixModelExporter);
 
 const documents = new TextDocuments(TextDocument);
 
@@ -81,14 +84,13 @@ connection.onInitialized(async () => {
 });
 
 
-registerCommandHandlers(connection);
+registerCommandHandlers(connection, famixProjectManager);
 
 connection.listen();
 
 const initializeFamixProjectManager = async () => {
     const { tsConfigPath, baseUrl } = await findTypeScriptProject(connection);
     const tsMorphProject = getTsMorphProject(tsConfigPath, baseUrl);
-    const jsonFilePath = await getOutputFilePath(connection);
-    famixProjectManager.setOutputFilePath(jsonFilePath);
+
     famixProjectManager.initializeFamixModel(tsMorphProject);
 };

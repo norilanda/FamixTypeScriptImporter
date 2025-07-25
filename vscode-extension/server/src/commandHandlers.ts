@@ -2,47 +2,19 @@
 import {
     createConnection,
 } from 'vscode-languageserver/node';
-import { getOutputFilePath, getTsConfigFilePath } from './utils';
-import { generateModelForProject } from 'ts2famix';
-import * as fs from "fs";
-import path from 'path';
-
-interface GenerateModelForProjectParams {
-    filePath: string;
-}
+import { findTypeScriptProject } from './utils';
+import { getTsMorphProject } from 'ts2famix';
+import { FamixProjectManager } from './model';
 
 const methodName = 'generateModelForProject';
 
-export const registerCommandHandlers = (connection: ReturnType<typeof createConnection>) => {
-    connection.onRequest(methodName, async (params: GenerateModelForProjectParams) => {
+export const registerCommandHandlers = (connection: ReturnType<typeof createConnection>, famixProjectManager: FamixProjectManager) => {
+    connection.onRequest(methodName, async () => {
         try {
-            const baseUrl = params.filePath;
-            if (!baseUrl) {
-                connection.console.error('No filePath provided for model generation.');
-                return { success: false, error: 'No filePath provided' };
-            }
-      
-            const tsConfigFilePath = getTsConfigFilePath(baseUrl);
-
-            const jsonOutput = generateModelForProject(tsConfigFilePath, baseUrl);
-      
-            const jsonFilePath = await getOutputFilePath(connection);
-            if (!jsonFilePath) {
-                connection.console.error('No output file path provided for model generation.');
-                return { success: false, error: 'No output file path configured' };
-            }
-
-            connection.console.log(`Writing model to ${jsonFilePath}`);
-      
-            // TODO: consider adding the integration tests for this
-            const outputDir = path.dirname(jsonFilePath);
-            if (!fs.existsSync(outputDir)) {
-                fs.mkdirSync(outputDir, { recursive: true });
-            }
-
-            await fs.promises.writeFile(jsonFilePath, jsonOutput);
-      
-            return { success: true, outputPath: jsonFilePath };
+            const { tsConfigPath, baseUrl } = await findTypeScriptProject(connection);
+            const tsMorphProject = getTsMorphProject(tsConfigPath, baseUrl);
+            await famixProjectManager.generateFamixModelFromScratch(tsMorphProject);
+            return { success: true };
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             connection.console.error(`Error generating model: ${errorMessage}`);
