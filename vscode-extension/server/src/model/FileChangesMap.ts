@@ -1,14 +1,12 @@
 import { FileChangeType, FileEvent } from 'vscode-languageserver/node';
-
-export type FileChangeAction = 'create' | 'change' | 'delete';
-
-type FileChangeMapAction = 'create' | 'change' | 'delete' | 'removeFromMap';
+import * as url from 'url';
+import { SourceFileChangeType } from 'ts2famix';
 
 export class FileChangesMap {
-    private fileChangesMap: Map<string, FileChangeAction> = new Map<string, FileChangeAction>();
+    private fileChangesMap: Map<string, SourceFileChangeType> = new Map<string, SourceFileChangeType>();
 
     public addFile(change: FileEvent) {	
-        const uri = change.uri;
+        const uri = url.fileURLToPath(change.uri);
         const actionFromEvent = getChangeTypeFromEvent(change);
         const actionToSetInMap = this.calculateFileChangeAction(actionFromEvent, uri);
         if (actionToSetInMap === 'removeFromMap') {
@@ -18,33 +16,33 @@ export class FileChangesMap {
         this.fileChangesMap.set(uri, actionToSetInMap);
     };
 	
-    public getAndClearFileChangesMap(): ReadonlyMap<string, FileChangeAction> {
-        const mapCopy = new Map<string, FileChangeAction>(this.fileChangesMap);
+    public getAndClearFileChangesMap(): ReadonlyMap<string, SourceFileChangeType> {
+        const mapCopy = new Map<string, SourceFileChangeType>(this.fileChangesMap);
         this.fileChangesMap.clear();
         return mapCopy;
     }
 
-    private calculateFileChangeAction (newAction: FileChangeAction, filePath: string): FileChangeMapAction {
+    private calculateFileChangeAction (newAction: SourceFileChangeType, filePath: string): SourceFileChangeType | 'removeFromMap' {
         const previousAction = this.fileChangesMap.get(filePath);
 
         switch (newAction) {
-            case 'change': {
-                if (previousAction === 'create') {
-                    return 'create';
+            case SourceFileChangeType.Update: {
+                if (previousAction === SourceFileChangeType.Create) {
+                    return SourceFileChangeType.Create;
                 }
-                return 'change';
+                return SourceFileChangeType.Update;
             }
-            case 'create': {
-                if (previousAction === 'delete') {
-                    return 'change';
+            case SourceFileChangeType.Create: {
+                if (previousAction === SourceFileChangeType.Delete) {
+                    return SourceFileChangeType.Update;
                 }
-                return 'create';
+                return SourceFileChangeType.Create;
             }
-            case 'delete': {
-                if (previousAction === 'create') {
+            case SourceFileChangeType.Delete: {
+                if (previousAction === SourceFileChangeType.Create) {
                     return 'removeFromMap';
                 }
-                return 'delete';
+                return SourceFileChangeType.Delete;
             }
             default:
                 throw new Error(`Unknown file change action: ${newAction}`);
@@ -52,14 +50,14 @@ export class FileChangesMap {
     }
 }
 
-const getChangeTypeFromEvent = (event: FileEvent): FileChangeAction => {
+const getChangeTypeFromEvent = (event: FileEvent): SourceFileChangeType => {
     switch (event.type) {
         case FileChangeType.Created:
-            return 'create';
+            return SourceFileChangeType.Create;
         case FileChangeType.Changed:
-            return 'change';
+            return SourceFileChangeType.Update;
         case FileChangeType.Deleted:
-            return 'delete';
+            return SourceFileChangeType.Delete;
         default:
             throw new Error(`Unknown file change type: ${event.type}`);
     }

@@ -1,4 +1,4 @@
-import { Project, SourceFile } from "ts-morph";
+import { FileSystemRefreshResult, Project, SourceFile } from "ts-morph";
 import * as fs from 'fs';
 import { FamixRepository } from "./lib/famix/famix_repository";
 import { Logger } from "tslog";
@@ -8,6 +8,12 @@ import { TypeScriptToFamixProcessor  } from "./analyze_functions/process_functio
 import { getClassesFromSourceFile } from "./famix_functions/helpersTsMorphElementsProcessing";
 
 export const logger = new Logger({ name: "ts2famix", minLevel: 2 });
+
+export enum SourceFileChangeType {
+    Create = 0,
+    Update = 1,
+    Delete = 2,
+}
 
 /**
  * This class is used to build a Famix model from a TypeScript source code
@@ -123,8 +129,55 @@ export class Importer {
         return this.entityDictionary.famixRep;
     }
 
-    public updateFamixModelIncrementally(sourceFiles: SourceFile[]): void {
-        sourceFiles.forEach(
+    public async updateFamixModelIncrementally(fileChangesMap: ReadonlyMap<string, SourceFileChangeType>): Promise<void> {
+        const sourceFileChangeMap = await this.getUpdatedTsMorphSourceFiles(fileChangesMap);
+        this.updateFamixModel(sourceFileChangeMap);
+        
+        sourceFileChangeMap.get(SourceFileChangeType.Delete)?.forEach(
+            file => {
+                this.project.removeSourceFile(file);
+            }
+        );
+    }
+
+    public async getUpdatedTsMorphSourceFiles(fileChangesMap: ReadonlyMap<string, SourceFileChangeType>): Promise<Map<SourceFileChangeType, SourceFile[]>> {
+        const refreshPromises = Array.from(fileChangesMap.entries()).map(async ([filePath, change]) => {
+            let sourceFile = this.project.getSourceFile(filePath);
+            if (sourceFile) {
+                if (change === SourceFileChangeType.Delete) {
+                    // NOTE: do not remove sourceFile from the project yet, it will forget the whole file
+                    return { sourceFile, change };
+                }
+                const result = await sourceFile.refreshFromFileSystem();
+                if (result !== FileSystemRefreshResult.NoChange) {
+                    return { sourceFile, change };
+                }
+                return null;
+            }
+            sourceFile = this.project.addSourceFileAtPath(filePath);
+            return { sourceFile, change };
+        });
+
+        const results = (await Promise.all(refreshPromises))
+            .filter(result => result !== null) as { sourceFile: SourceFile; change: SourceFileChangeType }[];
+
+        return results.reduce((acc, { sourceFile, change }) => {
+            if (!acc.has(change)) {
+                acc.set(change, []);
+            }
+            acc.get(change)!.push(sourceFile);
+            return acc;
+        }, new Map<SourceFileChangeType, SourceFile[]>());
+    };
+
+    private updateFamixModel(sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>): void {
+        const allSourceFiles = Array.from(sourceFileChangeMap.values()).flat();
+        const sourceFilesToCreateEntities = [
+            ...(sourceFileChangeMap.get(SourceFileChangeType.Create) || []),
+            ...(sourceFileChangeMap.get(SourceFileChangeType.Update) || []),
+        ];
+
+        allSourceFiles.forEach(
             file => {
                 this.entityDictionary.famixRep.removeEntitiesBySourceFile(file.getFilePath());
                 // this.entityDictionary.removeEntitiesBySourceFilePath(file.getFilePath());
@@ -132,8 +185,8 @@ export class Importer {
             }
         );
 
-        this.processFunctions.processFiles(sourceFiles);
-        this.processReferences(sourceFiles);
+        this.processFunctions.processFiles(sourceFilesToCreateEntities);
+        this.processReferences(sourceFilesToCreateEntities);
     }
 
     private initFamixRep(project: Project): void {

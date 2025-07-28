@@ -12,7 +12,6 @@ export const onDidChangeWatchedFiles = async (
 
     const mapSlice = fileChangesMap.getAndClearFileChangesMap();
     // TODO: ensure that there is no race condition (when new changes are added while we are processing the previous ones)
-    const famixChangesToBeDone = await famixProjectManager.updateTsMorphProject(mapSlice);
-    famixProjectManager.updateFamixModel(famixChangesToBeDone);
+    await famixProjectManager.updateFamixModelIncrementally(mapSlice);
     await famixProjectManager.generateNewJsonForFamixModel();
 };
