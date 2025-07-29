@@ -1,9 +1,11 @@
-import { DidChangeWatchedFilesParams } from 'vscode-languageserver/node';
+import { createConnection, DidChangeWatchedFilesParams } from 'vscode-languageserver/node';
 import { FileChangesMap } from '../model/FileChangesMap';
 import { FamixProjectManager } from '../model/FamixProjectManager';
 
 export const onDidChangeWatchedFiles = async (
-    params: DidChangeWatchedFilesParams, fileChangesMap: FileChangesMap,
+    params: DidChangeWatchedFilesParams,
+    connection: ReturnType<typeof createConnection>, 
+    fileChangesMap: FileChangesMap,
     famixProjectManager: FamixProjectManager
 ) => {
     for (const change of params.changes) {
@@ -13,5 +15,9 @@ export const onDidChangeWatchedFiles = async (
     const mapSlice = fileChangesMap.getAndClearFileChangesMap();
     // TODO: ensure that there is no race condition (when new changes are added while we are processing the previous ones)
     await famixProjectManager.updateFamixModelIncrementally(mapSlice);
-    await famixProjectManager.generateNewJsonForFamixModel();
+    const exportResult = await famixProjectManager.generateNewJsonForFamixModel();
+    if (exportResult.isErr()) {
+        connection.window.showErrorMessage(exportResult.error.message);
+        return;
+    }
 };

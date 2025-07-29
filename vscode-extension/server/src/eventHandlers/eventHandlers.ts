@@ -19,5 +19,5 @@ export const registerEventHandlers = (connection: ReturnType<typeof createConnec
     // We may take a look on how ESLint or similar tools handles this.
 
     // TODO: consider removing debounce
-    connection.onDidChangeWatchedFiles(params => onDidChangeWatchedFiles(params, fileChangesMap, famixProjectManager));
+    connection.onDidChangeWatchedFiles(params => onDidChangeWatchedFiles(params, connection, fileChangesMap, famixProjectManager));
 };

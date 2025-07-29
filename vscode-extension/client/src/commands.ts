@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { LanguageClient } from 'vscode-languageclient/node';
+import { LanguageClient, ResponseMessage } from 'vscode-languageclient/node';
 
 const commandName = 'ts2famix.generateModelForProject';
 const serverMethodName = 'generateModelForProject';
@@ -10,8 +10,12 @@ export const registerCommands = (context: vscode.ExtensionContext, client: Langu
             if (!client.isRunning()) {
                 await client.start();
             }
-            client.sendRequest(serverMethodName);
-            vscode.window.showInformationMessage('Model generation command sent for current file.');
+            const response = await client.sendRequest<ResponseMessage>(serverMethodName);
+            if (response && response.error) {
+                vscode.window.showErrorMessage(`Failed to generate model: ${response.error.data}`);
+            } else {
+                vscode.window.showInformationMessage('Successfully generated Famix model.');
+            }
         }
     });
     context.subscriptions.push(generateModelForCurrentFile);

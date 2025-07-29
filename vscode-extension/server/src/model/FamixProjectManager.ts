@@ -1,6 +1,7 @@
 import { Project } from 'ts-morph';
 import { FamixRepository, Importer, SourceFileChangeType } from 'ts2famix';
 import { FamixModelExporter } from './FamixModelExporter';
+import { Result } from 'neverthrow';
 
 export class FamixProjectManager {
     private _importer: Importer;
@@ -16,20 +17,20 @@ export class FamixProjectManager {
         this._famixRep = this._importer.famixRepFromProject(project);
     }
 
-    public async generateFamixModelFromScratch(project: Project): Promise<void> {
+    public async generateFamixModelFromScratch(project: Project): Promise<Result<void, Error>> {
         this._importer = new Importer();
         this._famixRep = this._importer.famixRepFromProject(project);
-        await this.generateNewJsonForFamixModel();
+        return this.generateNewJsonForFamixModel();
     }
 
     public async updateFamixModelIncrementally(fileChangesMap: ReadonlyMap<string, SourceFileChangeType>): Promise<void> {
         this._importer.updateFamixModelIncrementally(fileChangesMap);
     }
 
-    public async generateNewJsonForFamixModel() {
+    public generateNewJsonForFamixModel(): Promise<Result<void, Error>> {
         if (!this._famixRep) {
             throw new Error('Famix model is not initialized.');
         }
-        await this._modelExporter.exportModelToFile(this._famixRep);
+        return this._modelExporter.exportModelToFile(this._famixRep);
     }
 }
