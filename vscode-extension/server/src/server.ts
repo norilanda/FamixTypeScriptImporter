@@ -17,6 +17,7 @@ import { getTsMorphProject } from 'ts2famix';
 import { findTypeScriptProject } from './utils';
 import { FamixProjectManager } from './model/FamixProjectManager';
 import { FamixModelExporter } from './model/FamixModelExporter';
+import { err, ok, Result } from 'neverthrow';
 
 let hasDidChangeWatchedFilesCapability = false;
 
@@ -69,9 +70,12 @@ connection.onInitialized(async () => {
                 }]
             });
             
-            initializeFamixProjectManager();
             registerEventHandlers(connection, famixProjectManager);
-            
+            const initializationResult = await initializeFamixProjectManager();
+            if (initializationResult.isErr()) {
+                connection.window.showErrorMessage(initializationResult.error.message);
+                return;
+            }
         } catch (error) {
             connection.console.error(`Failed to register file watcher: ${error}`);
             // TODO: Handle the error here
@@ -79,8 +83,6 @@ connection.onInitialized(async () => {
     } else {
         //TODO: Handle the case when the client does not support dynamic registration
     }
-    await connection.sendNotification('ts2famix/serverInitializationComplete');
-
 });
 
 
@@ -88,9 +90,14 @@ registerCommandHandlers(connection, famixProjectManager);
 
 connection.listen();
 
-const initializeFamixProjectManager = async () => {
-    const { tsConfigPath, baseUrl } = await findTypeScriptProject(connection);
+const initializeFamixProjectManager = async (): Promise<Result<void, Error>> => {
+    const result = await findTypeScriptProject(connection);
+    if (result.isErr()) {
+        return err(result.error);
+    }
+    const { tsConfigPath, baseUrl } = result.value;
     const tsMorphProject = getTsMorphProject(tsConfigPath, baseUrl);
 
     famixProjectManager.initializeFamixModel(tsMorphProject);
+    return ok();
 };

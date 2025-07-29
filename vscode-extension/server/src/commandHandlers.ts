@@ -11,7 +11,11 @@ const methodName = 'generateModelForProject';
 export const registerCommandHandlers = (connection: ReturnType<typeof createConnection>, famixProjectManager: FamixProjectManager) => {
     connection.onRequest(methodName, async () => {
         try {
-            const { tsConfigPath, baseUrl } = await findTypeScriptProject(connection);
+            const result = await findTypeScriptProject(connection);
+            if (result.isErr()) {
+                return { success: false, error: result.error.message };
+            }
+            const { tsConfigPath, baseUrl } = result.value;
             const tsMorphProject = getTsMorphProject(tsConfigPath, baseUrl);
             await famixProjectManager.generateFamixModelFromScratch(tsMorphProject);
             return { success: true };
