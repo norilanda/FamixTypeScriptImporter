@@ -17,7 +17,7 @@ export const registerCommandHandlers = (connection: ReturnType<typeof createConn
     connection.onRequest(methodName, async (): Promise<ResponseMessage> => {
         const getErrorResponse = (errorCode: number, message: string): ResponseMessage => ({
             jsonrpc: '2.0',
-            id: methodName,
+            id: null,
             error: new ResponseError(errorCode, message, message)
         });
         try {
@@ -33,7 +33,7 @@ export const registerCommandHandlers = (connection: ReturnType<typeof createConn
             }
             return { 
                 jsonrpc: '2.0',
-                id: methodName,
+                id: null,
                 result: null };
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
