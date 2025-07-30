@@ -500,7 +500,10 @@ export class EntityDictionary {
                 concElement = this.fmxFunctionAndMethodMap.get(fullyQualifiedFilename) as Famix.ParametricMethod;
             }
         }
-        return concElement!;
+        if (!concElement) {
+            throw new Error(`Failed to create or retrieve the Famix concrete element for fullyQualifiedFilename: ${fullyQualifiedFilename}`);
+        }
+        return concElement;
     }
 
     /**
