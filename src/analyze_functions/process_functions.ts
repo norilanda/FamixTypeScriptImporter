@@ -334,7 +334,7 @@ export class TypeScriptToFamixProcessor  {
     private processClass(c: ClassDeclaration): Famix.Class | Famix.ParametricClass {
         // this.classes.push(c);
     
-        const fmxClass = this.entityDictionary.createOrGetFamixClass(c);
+        const fmxClass = this.entityDictionary.ensureFamixClass(c);
     
         logger.debug(`Class: ${c.getName()}, (${c.getType().getText()}), fqn = ${fmxClass.fullyQualifiedName}`);
     
@@ -561,7 +561,7 @@ export class TypeScriptToFamixProcessor  {
         }
         const fmxProperty = this.entityDictionary.createFamixProperty(property);
         if (classDecl instanceof ClassDeclaration) {
-            const fmxClass = this.entityDictionary.createOrGetFamixClass(classDecl);
+            const fmxClass = this.entityDictionary.ensureFamixClass(classDecl);
             fmxClass.addProperty(fmxProperty);
         } else {
             throw new Error("Unexpected type ClassExpression.");

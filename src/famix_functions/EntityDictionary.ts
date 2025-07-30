@@ -359,7 +359,7 @@ export class EntityDictionary {
      * @param cls A class
      * @returns The Famix model of the class
      */
-    public createOrGetFamixClass(cls: ClassDeclaration): Famix.Class | Famix.ParametricClass {
+    public ensureFamixClass(cls: ClassDeclaration): Famix.Class | Famix.ParametricClass {
         const mapToFamixElement = (cls: ClassDeclaration) => {
             const isAbstract = cls.isAbstract();
             const clsName = cls.getName() || this.UNKNOWN_VALUE;
@@ -378,12 +378,12 @@ export class EntityDictionary {
             return fmxClass;
         };
 
-        return this.createOrGetFamixElement<ClassDeclaration, Famix.Class | Famix.ParametricClass>(
+        return this.ensureFamixElement<ClassDeclaration, Famix.Class | Famix.ParametricClass>(
             cls, mapToFamixElement
         );
     }
 
-    private createOrGetFamixElement<
+    private ensureFamixElement<
         TTMorphNode extends Node, 
         TFamixElement extends Famix.SourcedEntity>(
             node: TTMorphNode, 
@@ -1322,7 +1322,7 @@ export class EntityDictionary {
 
         let subClass: Famix.Class | Famix.Interface | undefined;
         if (baseClassOrInterface instanceof ClassDeclaration) {
-            subClass = this.createOrGetFamixClass(baseClassOrInterface);
+            subClass = this.ensureFamixClass(baseClassOrInterface);
         } else {
             subClass = this.createOrGetFamixInterface(baseClassOrInterface);
         }
@@ -1334,7 +1334,7 @@ export class EntityDictionary {
         let superClass: Famix.Class | Famix.Interface | undefined;
 
         if (inheritedClassOrInterface instanceof ClassDeclaration) {
-            superClass = this.createOrGetFamixClass(inheritedClassOrInterface);
+            superClass = this.ensureFamixClass(inheritedClassOrInterface);
         } else if (inheritedClassOrInterface instanceof InterfaceDeclaration) {
             superClass = this.createOrGetFamixInterface(inheritedClassOrInterface);
         } else  {
@@ -1350,7 +1350,7 @@ export class EntityDictionary {
                 if (heritageClause.getText().startsWith("extends") && baseClassOrInterface instanceof ClassDeclaration) {
                     const classDeclaration = getInterfaceOrClassDeclarationFromExpression(inheritedClassOrInterface);
                     if (classDeclaration !== undefined && classDeclaration instanceof ClassDeclaration) {
-                        superClass = this.createOrGetFamixClass(classDeclaration);
+                        superClass = this.ensureFamixClass(classDeclaration);
                     } else {
                         logger.error(`Class declaration not found for ${inheritedClassOrInterface.getText()}.`);
                         superClass = this.createOrGetFamixClassStub(inheritedClassOrInterface);
@@ -1712,7 +1712,7 @@ export class EntityDictionary {
                     let genEntity;
                     if (superEntity instanceof ExpressionWithTypeArguments) {
                         EntityDeclaration = entity.getExpression().getSymbol()?.getDeclarations()[0] as ClassDeclaration;
-                        genEntity = this.createOrGetFamixClass(EntityDeclaration) as Famix.ParametricClass;
+                        genEntity = this.ensureFamixClass(EntityDeclaration) as Famix.ParametricClass;
                     } else {
                         EntityDeclaration = entity.getExpression().getSymbol()?.getDeclarations()[0] as InterfaceDeclaration;
                         genEntity = this.createOrGetFamixInterface(EntityDeclaration) as Famix.ParametricInterface;
@@ -1759,7 +1759,7 @@ export class EntityDictionary {
                 const instanceIsGeneric = instance.getTypeArguments().length > 0;
                 if (instanceIsGeneric) {
                     const conParams = instance.getTypeArguments().map((param) => param.getText());
-                    const genEntity = this.createOrGetFamixClass(cls) as Famix.ParametricClass;
+                    const genEntity = this.ensureFamixClass(cls) as Famix.ParametricClass;
                     const genParams = cls.getTypeParameters().map((param) => param.getText());
                     if (!Helpers.arraysAreEqual(conParams,genParams)) {
                         const conEntity = this.createOrGetFamixConcreteElement(genEntity,cls,instance.getTypeArguments());
@@ -1892,7 +1892,7 @@ export class EntityDictionary {
                         if (!Helpers.arraysAreEqual(conParams, genParams)) {
                             let genElement;
                             if (element instanceof ClassDeclaration) {
-                                genElement = this.createOrGetFamixClass(element) as Famix.ParametricClass;
+                                genElement = this.ensureFamixClass(element) as Famix.ParametricClass;
                             } else {
                                 genElement = this.createOrGetFamixInterface(element) as Famix.ParametricInterface;
                             }
