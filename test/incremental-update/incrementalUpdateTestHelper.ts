@@ -24,7 +24,7 @@ export const createExpectedFamixModelForSeveralFiles = (sourceFilesWithCode: [st
 };
 
 export const getUpdateFileChangesMap = (sourceFile: SourceFile) => {
-    const fileChangesMap = new Map<string, SourceFileChangeType>();
-    fileChangesMap.set(sourceFile.getFilePath(), SourceFileChangeType.Update);
+    const fileChangesMap = new Map<SourceFileChangeType, SourceFile[]>();
+    fileChangesMap.set(SourceFileChangeType.Update, [sourceFile]);
     return fileChangesMap;
 };
