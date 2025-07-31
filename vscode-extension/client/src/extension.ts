@@ -40,18 +40,11 @@ export async function activate(context: ExtensionContext) {
 
     registerCommands(context, client);
 
-    let didServerCompleteInitialization = false;
-    
-    client.onNotification('ts2famix/serverInitializationComplete', () => {
-        didServerCompleteInitialization = true;
-    });
-    
     // Start the client. This will also launch the server
     await client.start();
 
     return {
         client: client,
-        didServerCompleteInitialization: () => didServerCompleteInitialization
     };
 }
 

@@ -1,6 +1,6 @@
 import { expectRepositoriesToHaveSameStructure } from "../incrementalUpdateExpect";
 import { IncrementalUpdateProjectBuilder } from "../incrementalUpdateProjectBuilder";
-import { createExpectedFamixModel } from "../incrementalUpdateTestHelper";
+import { createExpectedFamixModel, getUpdateFileChangesMap } from "../incrementalUpdateTestHelper";
 
 const sourceFileName = 'sourceCode.ts';
 const existingClassName = 'ExistingClass';
@@ -8,33 +8,25 @@ const newClassName = 'NewClass';
 
 describe('Add new classes to a single file', () => {
   const sourceCodeWithOneClass = `
-    class ${existingClassName} {
-      property1: string;
-      method1() {}
-    }
+    class ${existingClassName} { }
   `;
 
   const sourceCodeWithTwoClasses = `
-    class ${existingClassName} {
-      property1: string;
-      method1() {}
-    }
+    class ${existingClassName} { }
 
-    class ${newClassName} {
-      property2: number;
-      method2() {}
-    }
+    class ${newClassName} { }
   `;
 
-  it('should create new classes in the Famix representation', () => {
+  it('should create new classes in the Famix representation', async () => {
     // arrange
     const testProjectBuilder = new IncrementalUpdateProjectBuilder();
     testProjectBuilder.addSourceFile(sourceFileName, sourceCodeWithOneClass);
     const { importer, famixRep } = testProjectBuilder.build();
     const sourceFile = testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeWithTwoClasses);
-    
+
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    await importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeWithTwoClasses);

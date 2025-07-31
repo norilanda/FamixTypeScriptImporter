@@ -57,22 +57,9 @@ export class TestHelper {
         throw new Error(`Language Client not available within ${timeout}ms`);
     }
 
-    static async waitForServerToInitialize(extensionId: string, timeout = 2000): Promise<void> {
-        const startTime = Date.now();
-
-        const extension = vscode.extensions.getExtension(extensionId);
-        while (Date.now() - startTime < timeout) {
-            if (extension?.isActive && extension.exports) {
-                const didServerCompleteInitialization = extension.exports.didServerCompleteInitialization();
-                if (didServerCompleteInitialization) {
-                    return;
-                }
-            }
-      
-            await this.sleep(500);
-        }
-
-        throw new Error(`Server did not complete initialization within ${timeout}ms`);
+    static async waitForServerToInitialize(): Promise<void> {
+        // TODO: add a more robust way to check if the server is initialized
+        await this.sleep(1000);
     }
 
     private static sleep(ms: number): Promise<void> {

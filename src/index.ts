@@ -5,8 +5,10 @@ import { Project } from 'ts-morph';
 import { Importer } from './analyze';
 import { FamixRepository } from './lib/famix/famix_repository';
 
-export { Importer } from './analyze';
+export { Importer, SourceFileChangeType } from './analyze';
 export { FamixRepository } from "./lib/famix/famix_repository";
+export {FamixBaseElement} from "./lib/famix/famix_base_element";
+export * from "./lib/famix/model/famix";
 
 export const generateModelForProject = (tsConfigFilePath: string, baseUrl: string) => {
     const project = new Project({

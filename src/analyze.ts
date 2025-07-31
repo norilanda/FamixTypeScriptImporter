@@ -5,8 +5,15 @@ import { Logger } from "tslog";
 import { EntityDictionary, EntityDictionaryConfig } from "./famix_functions/EntityDictionary";
 import path from "path";
 import { TypeScriptToFamixProcessor  } from "./analyze_functions/process_functions";
+import { getClassesFromSourceFile } from "./famix_functions/helpersTsMorphElementsProcessing";
 
 export const logger = new Logger({ name: "ts2famix", minLevel: 2 });
+
+export enum SourceFileChangeType {
+    Create = 0,
+    Update = 1,
+    Delete = 2,
+}
 
 /**
  * This class is used to build a Famix model from a TypeScript source code
@@ -60,16 +67,16 @@ export class Importer {
         const onlyTypeScriptFiles = project.getSourceFiles().filter(f => f.getFilePath().endsWith('.ts'));
         this.processFunctions.processFiles(onlyTypeScriptFiles);
         
-        this.processReferences(onlyTypeScriptFiles);
+        this.processReferences(onlyTypeScriptFiles, onlyTypeScriptFiles);
     }
 
-    private processReferences(sourceFiles: SourceFile[]): void {
-        const sourceFilesNames = sourceFiles.map(f => f.getFilePath());
-
-        sourceFilesNames.forEach(fileName => {
+    private processReferences(sourceFiles: SourceFile[], allExistingSourceFiles: SourceFile[]): void {
+        sourceFiles.forEach(sourceFile => {
+            const fileName = sourceFile.getFilePath();
             const accesses = this.processFunctions.accessMap.getBySourceFileName(fileName);
             const methodsAndFunctionsWithId = this.processFunctions.methodsAndFunctionsWithId.getBySourceFileName(fileName);
-            const classes = this.processFunctions.classes.getBySourceFileName(fileName);
+            // const classes = this.processFunctions.classes.getBySourceFileName(fileName);
+            const classes = getClassesFromSourceFile(sourceFile);
             const interfaces = this.processFunctions.interfaces.getBySourceFileName(fileName);
             const modules = this.processFunctions.modules.getBySourceFileName(fileName);
             const exports = this.processFunctions.listOfExportMaps.getBySourceFileName(fileName);
@@ -77,7 +84,7 @@ export class Importer {
             this.entityDictionary.setCurrentSourceFileName(fileName);
 
             // TODO: check if it is working correctly
-            this.processFunctions.processImportClausesForImportEqualsDeclarations(this.project.getSourceFiles(), exports);
+            this.processFunctions.processImportClausesForImportEqualsDeclarations(allExistingSourceFiles, exports);
             this.processFunctions.processImportClausesForModules(modules, exports);
             this.processFunctions.processAccesses(accesses);
             this.processFunctions.processInvocations(methodsAndFunctionsWithId);
@@ -122,17 +129,28 @@ export class Importer {
         return this.entityDictionary.famixRep;
     }
 
-    public updateFamixModelIncrementally(sourceFiles: SourceFile[]): void {
-        sourceFiles.forEach(
+    public async updateFamixModelIncrementally(sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>): Promise<void> {
+        const allSourceFiles = Array.from(sourceFileChangeMap.values()).flat();
+        const sourceFilesToCreateEntities = [
+            ...(sourceFileChangeMap.get(SourceFileChangeType.Create) || []),
+            ...(sourceFileChangeMap.get(SourceFileChangeType.Update) || []),
+        ];
+
+        allSourceFiles.forEach(
             file => {
                 this.entityDictionary.famixRep.removeEntitiesBySourceFile(file.getFilePath());
-                this.entityDictionary.removeEntitiesBySourceFilePath(file.getFilePath());
-                this.processFunctions.removeNodesBySourceFile(file.getFilePath());
+                // this.entityDictionary.removeEntitiesBySourceFilePath(file.getFilePath());
+                // this.processFunctions.removeNodesBySourceFile(file.getFilePath());
             }
         );
 
-        this.processFunctions.processFiles(sourceFiles);
-        this.processReferences(sourceFiles);
+        this.processFunctions.processFiles(sourceFilesToCreateEntities);
+        const sourceFilesToDelete = sourceFileChangeMap.get(SourceFileChangeType.Delete) || [];
+        const existingSourceFiles = this.project.getSourceFiles().filter(
+            file => !sourceFilesToDelete.includes(file)
+        );
+        this.processReferences(sourceFilesToCreateEntities, existingSourceFiles);
+
     }
 
     private initFamixRep(project: Project): void {

@@ -6,6 +6,7 @@ import { logger } from "../analyze";
 import { getFQN } from "../fqn";
 import { EntityDictionary, InvocableType } from "../famix_functions/EntityDictionary";
 import { SourceFileDataArray, SourceFileDataMap, SourceFileDataSet } from "../famix_functions/SourceFileData";
+import { getClassesFromSourceFile } from "../famix_functions/helpersTsMorphElementsProcessing";
 
 export type AccessibleTSMorphElement = ParameterDeclaration | VariableDeclaration | PropertyDeclaration | EnumMember;
 export type FamixID = number;
@@ -29,7 +30,7 @@ export class TypeScriptToFamixProcessor  {
     public methodsAndFunctionsWithId = new SourceFileDataMap<number, InvocableType>(); // Maps the Famix method, constructor, getter, setter and function ids to their ts-morph method, constructor, getter, setter or function object
 
     public accessMap = new SourceFileDataMap<FamixID, AccessibleTSMorphElement>(); // Maps the Famix parameter, variable, property and enum value ids to their ts-morph parameter, variable, property or enum member object
-    public classes = new SourceFileDataArray<ClassDeclaration>(); // Array of all the classes of the source files
+    // public classes = new SourceFileDataArray<ClassDeclaration>(); // Array of all the classes of the source files
     public interfaces = new SourceFileDataArray<InterfaceDeclaration>(); // Array of all the interfaces of the source files
     public modules = new SourceFileDataArray<SourceFile>(); // Array of all the source files which are modules
     public listOfExportMaps = new SourceFileDataArray<ReadonlyMap<string, ExportedDeclarations[]>>(); // Array of all the export maps
@@ -45,7 +46,7 @@ export class TypeScriptToFamixProcessor  {
     private setCurrentSourceFileName(sourceFileName: string): void {
         this.methodsAndFunctionsWithId.setSourceFileName(sourceFileName);
         this.accessMap.setSourceFileName(sourceFileName);
-        this.classes.setSourceFileName(sourceFileName);
+        // this.classes.setSourceFileName(sourceFileName);
         this.interfaces.setSourceFileName(sourceFileName);
         this.modules.setSourceFileName(sourceFileName);
         this.listOfExportMaps.setSourceFileName(sourceFileName);
@@ -57,7 +58,7 @@ export class TypeScriptToFamixProcessor  {
     public removeNodesBySourceFile(sourceFile: string) {
         this.methodsAndFunctionsWithId.removeBySourceFileName(sourceFile);
         this.accessMap.removeBySourceFileName(sourceFile);
-        this.classes.removeBySourceFileName(sourceFile);
+        // this.classes.removeBySourceFileName(sourceFile);
         this.interfaces.removeBySourceFileName(sourceFile);
         this.modules.removeBySourceFileName(sourceFile);
         this.listOfExportMaps.removeBySourceFileName(sourceFile);
@@ -208,38 +209,12 @@ export class TypeScriptToFamixProcessor  {
      */
     private processClasses(m: SourceFile | ModuleDeclaration, fmxScope: Famix.ScriptEntity | Famix.Module): void {
         logger.debug(`processClasses: ---------- Finding Classes:`);
-        const classesInArrowFunctions = this.getClassesDeclaredInArrowFunctions(m);
-        const classes = m.getClasses().concat(classesInArrowFunctions);
+        const classes = getClassesFromSourceFile(m);
         classes.forEach(c => {
             const fmxClass = this.processClass(c);
             fmxScope.addType(fmxClass);
         });
-    }
-    
-    private getArrowFunctionClasses(f: ArrowFunction): ClassDeclaration[] {
-        const classes: ClassDeclaration[] = [];
-    
-        function findClasses(node: Node) {
-            if (node.getKind() === SyntaxKind.ClassDeclaration) {
-                classes.push(node as ClassDeclaration);
-            }
-            node.getChildren().forEach(findClasses);
-        }
-    
-        findClasses(f);
-        return classes;
-    }
-    
-    /**
-     * ts-morph doesn't find classes in arrow functions, so we need to find them manually
-     * @param s A source file 
-     * @returns the ClassDeclaration objects found in arrow functions of the source file
-     */
-    private getClassesDeclaredInArrowFunctions(s: SourceFile | ModuleDeclaration): ClassDeclaration[] {
-        const arrowFunctions = s.getDescendantsOfKind(SyntaxKind.ArrowFunction);
-        const classesInArrowFunctions = arrowFunctions.map(f => this.getArrowFunctionClasses(f)).flat();
-        return classesInArrowFunctions;
-    }
+    }  
     
     /**
      * Builds a Famix model for the interfaces of a container
@@ -357,9 +332,9 @@ export class TypeScriptToFamixProcessor  {
      * @returns A Famix.Class or a Famix.ParametricClass representing the class
      */
     private processClass(c: ClassDeclaration): Famix.Class | Famix.ParametricClass {
-        this.classes.push(c);
+        // this.classes.push(c);
     
-        const fmxClass = this.entityDictionary.createOrGetFamixClass(c);
+        const fmxClass = this.entityDictionary.ensureFamixClass(c);
     
         logger.debug(`Class: ${c.getName()}, (${c.getType().getText()}), fqn = ${fmxClass.fullyQualifiedName}`);
     
@@ -586,7 +561,7 @@ export class TypeScriptToFamixProcessor  {
         }
         const fmxProperty = this.entityDictionary.createFamixProperty(property);
         if (classDecl instanceof ClassDeclaration) {
-            const fmxClass = this.entityDictionary.createOrGetFamixClass(classDecl);
+            const fmxClass = this.entityDictionary.ensureFamixClass(classDecl);
             fmxClass.addProperty(fmxProperty);
         } else {
             throw new Error("Unexpected type ClassExpression.");

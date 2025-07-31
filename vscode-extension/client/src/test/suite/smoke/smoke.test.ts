@@ -30,7 +30,7 @@ suite('Smoke Tests', () => {
         await TestHelper.waitForExtensionActivation(extensionId);
     
         const client = await TestHelper.waitForLanguageClient(extensionId);
-        await TestHelper.waitForServerToInitialize(extensionId);
+        await TestHelper.waitForServerToInitialize();
   
         try {
             const mockFilePath = 'c:\\path\\to\\mock\\tsconfig.json';

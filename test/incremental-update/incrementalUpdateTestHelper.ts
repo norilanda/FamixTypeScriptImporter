@@ -1,4 +1,5 @@
-import { Importer } from "../../src/analyze";
+import { SourceFile } from "ts-morph";
+import { Importer, SourceFileChangeType } from "../../src";
 import { createProject } from "../testUtils";
 
 export const getFqnForClass = (sourceFileName: string, className: string): string => {
@@ -20,4 +21,10 @@ export const createExpectedFamixModelForSeveralFiles = (sourceFilesWithCode: [st
     const famixRep = importer.famixRepFromProject(project);
 
     return famixRep;
+};
+
+export const getUpdateFileChangesMap = (sourceFile: SourceFile) => {
+    const fileChangesMap = new Map<SourceFileChangeType, SourceFile[]>();
+    fileChangesMap.set(SourceFileChangeType.Update, [sourceFile]);
+    return fileChangesMap;
 };
