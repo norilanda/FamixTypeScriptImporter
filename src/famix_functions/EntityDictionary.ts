@@ -461,7 +461,7 @@ export class EntityDictionary {
                 
         fullyQualifiedFilename = Helpers.replaceLastBetweenTags(fullyQualifiedFilename,params);
 
-        let concElement: ParametricVariantType;
+        let concElement: ParametricVariantType | undefined;
 
         if (!this.fmxInterfaceMap.has(fullyQualifiedFilename) && 
             // !this.fmxClassMap.has(fullyQualifiedFilename) && 
@@ -472,6 +472,9 @@ export class EntityDictionary {
             concreteArguments.map((param) => {
                 if (param instanceof TypeParameterDeclaration) {
                     const parameter = this.createOrGetFamixType(param.getText(),param.getType(), param);
+                    if (!concElement) {
+                        throw new Error(`Failed to create or retrieve the Famix concrete element for fullyQualifiedFilename: ${fullyQualifiedFilename}`);
+                    }
                     concElement.addConcreteParameter(parameter);
                 } else {
                     logger.warn(`> WARNING: concrete argument ${param.getText()} is not a TypeParameterDeclaration. It is a ${param.getKindName()}.`);

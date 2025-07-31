@@ -1,4 +1,4 @@
-import { FileSystemRefreshResult, Project, SourceFile } from "ts-morph";
+import { Project, SourceFile } from "ts-morph";
 import * as fs from 'fs';
 import { FamixRepository } from "./lib/famix/famix_repository";
 import { Logger } from "tslog";
@@ -67,10 +67,10 @@ export class Importer {
         const onlyTypeScriptFiles = project.getSourceFiles().filter(f => f.getFilePath().endsWith('.ts'));
         this.processFunctions.processFiles(onlyTypeScriptFiles);
         
-        this.processReferences(onlyTypeScriptFiles);
+        this.processReferences(onlyTypeScriptFiles, onlyTypeScriptFiles);
     }
 
-    private processReferences(sourceFiles: SourceFile[]): void {
+    private processReferences(sourceFiles: SourceFile[], allExistingSourceFiles: SourceFile[]): void {
         sourceFiles.forEach(sourceFile => {
             const fileName = sourceFile.getFilePath();
             const accesses = this.processFunctions.accessMap.getBySourceFileName(fileName);
@@ -84,7 +84,7 @@ export class Importer {
             this.entityDictionary.setCurrentSourceFileName(fileName);
 
             // TODO: check if it is working correctly
-            this.processFunctions.processImportClausesForImportEqualsDeclarations(this.project.getSourceFiles(), exports);
+            this.processFunctions.processImportClausesForImportEqualsDeclarations(allExistingSourceFiles, exports);
             this.processFunctions.processImportClausesForModules(modules, exports);
             this.processFunctions.processAccesses(accesses);
             this.processFunctions.processInvocations(methodsAndFunctionsWithId);
@@ -129,48 +129,7 @@ export class Importer {
         return this.entityDictionary.famixRep;
     }
 
-    public async updateFamixModelIncrementally(fileChangesMap: ReadonlyMap<string, SourceFileChangeType>): Promise<void> {
-        const sourceFileChangeMap = await this.getUpdatedTsMorphSourceFiles(fileChangesMap);
-        this.updateFamixModel(sourceFileChangeMap);
-        
-        sourceFileChangeMap.get(SourceFileChangeType.Delete)?.forEach(
-            file => {
-                this.project.removeSourceFile(file);
-            }
-        );
-    }
-
-    public async getUpdatedTsMorphSourceFiles(fileChangesMap: ReadonlyMap<string, SourceFileChangeType>): Promise<Map<SourceFileChangeType, SourceFile[]>> {
-        const refreshPromises = Array.from(fileChangesMap.entries()).map(async ([filePath, change]) => {
-            let sourceFile = this.project.getSourceFile(filePath);
-            if (sourceFile) {
-                if (change === SourceFileChangeType.Delete) {
-                    // NOTE: do not remove sourceFile from the project yet, it will forget the whole file
-                    return { sourceFile, change };
-                }
-                const result = await sourceFile.refreshFromFileSystem();
-                if (result !== FileSystemRefreshResult.NoChange) {
-                    return { sourceFile, change };
-                }
-                return null;
-            }
-            sourceFile = this.project.addSourceFileAtPath(filePath);
-            return { sourceFile, change };
-        });
-
-        const results = (await Promise.all(refreshPromises))
-            .filter(result => result !== null) as { sourceFile: SourceFile; change: SourceFileChangeType }[];
-
-        return results.reduce((acc, { sourceFile, change }) => {
-            if (!acc.has(change)) {
-                acc.set(change, []);
-            }
-            acc.get(change)!.push(sourceFile);
-            return acc;
-        }, new Map<SourceFileChangeType, SourceFile[]>());
-    };
-
-    private updateFamixModel(sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>): void {
+    public async updateFamixModelIncrementally(sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>): Promise<void> {
         const allSourceFiles = Array.from(sourceFileChangeMap.values()).flat();
         const sourceFilesToCreateEntities = [
             ...(sourceFileChangeMap.get(SourceFileChangeType.Create) || []),
@@ -186,7 +145,12 @@ export class Importer {
         );
 
         this.processFunctions.processFiles(sourceFilesToCreateEntities);
-        this.processReferences(sourceFilesToCreateEntities);
+        const sourceFilesToDelete = sourceFileChangeMap.get(SourceFileChangeType.Delete) || [];
+        const existingSourceFiles = this.project.getSourceFiles().filter(
+            file => !sourceFilesToDelete.includes(file)
+        );
+        this.processReferences(sourceFilesToCreateEntities, existingSourceFiles);
+
     }
 
     private initFamixRep(project: Project): void {
