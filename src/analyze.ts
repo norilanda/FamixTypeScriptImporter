@@ -6,6 +6,7 @@ import { EntityDictionary, EntityDictionaryConfig } from "./famix_functions/Enti
 import path from "path";
 import { TypeScriptToFamixProcessor  } from "./analyze_functions/process_functions";
 import { getClassesFromSourceFile } from "./famix_functions/helpersTsMorphElementsProcessing";
+import { getFamixIndexFileAnchorFileName } from "./famix_functions/famixIndexFileAnchorHelper";
 
 export const logger = new Logger({ name: "ts2famix", minLevel: 2 });
 
@@ -81,7 +82,7 @@ export class Importer {
             const modules = this.processFunctions.modules.getBySourceFileName(fileName);
             const exports = this.processFunctions.listOfExportMaps.getBySourceFileName(fileName);
 
-            this.entityDictionary.setCurrentSourceFileName(fileName);
+            // this.entityDictionary.setCurrentSourceFileName(fileName);
 
             // TODO: check if it is working correctly
             this.processFunctions.processImportClausesForImportEqualsDeclarations(allExistingSourceFiles, exports);
@@ -129,7 +130,7 @@ export class Importer {
         return this.entityDictionary.famixRep;
     }
 
-    public async updateFamixModelIncrementally(sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>): Promise<void> {
+    public updateFamixModelIncrementally(sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>): void {
         const allSourceFiles = Array.from(sourceFileChangeMap.values()).flat();
         const sourceFilesToCreateEntities = [
             ...(sourceFileChangeMap.get(SourceFileChangeType.Create) || []),
@@ -138,9 +139,10 @@ export class Importer {
 
         allSourceFiles.forEach(
             file => {
-                this.entityDictionary.famixRep.removeEntitiesBySourceFile(file.getFilePath());
-                // this.entityDictionary.removeEntitiesBySourceFilePath(file.getFilePath());
-                // this.processFunctions.removeNodesBySourceFile(file.getFilePath());
+                const filePath = getFamixIndexFileAnchorFileName(file.getFilePath(), this.entityDictionary.getAbsolutePath());
+                this.entityDictionary.famixRep.removeEntitiesBySourceFile(filePath);
+                // this.entityDictionary.removeEntitiesBySourceFilePath(filePath);
+                // this.processFunctions.removeNodesBySourceFile(filePath);
             }
         );
 

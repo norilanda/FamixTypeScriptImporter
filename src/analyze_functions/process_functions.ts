@@ -52,7 +52,7 @@ export class TypeScriptToFamixProcessor  {
         this.listOfExportMaps.setSourceFileName(sourceFileName);
         this.processedNodesWithTypeParams.setSourceFileName(sourceFileName);
 
-        this.entityDictionary.setCurrentSourceFileName(sourceFileName);
+        // this.entityDictionary.setCurrentSourceFileName(sourceFileName);
     }
 
     public removeNodesBySourceFile(sourceFile: string) {

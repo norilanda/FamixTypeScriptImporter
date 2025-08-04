@@ -17,6 +17,8 @@ import * as FQNFunctions from "../fqn";
 import path from "path";
 import { convertToRelativePath } from "./helpers_path";
 import { SourceFileDataMap } from "./SourceFileData";
+import { getFamixIndexFileAnchorFileName } from "./famixIndexFileAnchorHelper";
+
 export type TSMorphObjectType = ImportDeclaration | ImportEqualsDeclaration | SourceFile | ModuleDeclaration | ClassDeclaration | InterfaceDeclaration | MethodDeclaration | ConstructorDeclaration | MethodSignature | FunctionDeclaration | FunctionExpression | ParameterDeclaration | VariableDeclaration | PropertyDeclaration | PropertySignature | TypeParameterDeclaration | Identifier | Decorator | GetAccessorDeclaration | SetAccessorDeclaration | ImportSpecifier | CommentRange | EnumDeclaration | EnumMember | TypeAliasDeclaration | ExpressionWithTypeArguments | TSMorphParametricType;
 
 export type TSMorphTypeDeclaration = TypeAliasDeclaration | PropertyDeclaration | PropertySignature | ConstructorDeclaration | MethodSignature | GetAccessorDeclaration | SetAccessorDeclaration | FunctionExpression | ParameterDeclaration | VariableDeclaration | EnumMember | ImportEqualsDeclaration | TSMorphParametricType | TypeParameterDeclaration ;
@@ -62,26 +64,6 @@ export class EntityDictionary {
 
     public getAbsolutePath(): string {
         return this.absolutePath;
-    }
-
-    public setCurrentSourceFileName(name: string): void {
-        this.fmxAliasMap.setSourceFileName(name);
-        this.fmxInterfaceMap.setSourceFileName(name);
-        this.fmxModuleMap.setSourceFileName(name);
-        this.fmxFileMap.setSourceFileName(name);
-        this.fmxTypeMap.setSourceFileName(name);
-        this.fmxPrimitiveTypeMap.setSourceFileName(name);
-        this.fmxFunctionAndMethodMap.setSourceFileName(name);
-        this.fmxArrowFunctionMap.setSourceFileName(name);
-        this.fmxParameterMap.setSourceFileName(name);
-        this.fmxVariableMap.setSourceFileName(name);
-        this.fmxImportClauseMap.setSourceFileName(name);
-        this.fmxEnumMap.setSourceFileName(name);
-        this.fmxInheritanceMap.setSourceFileName(name);
-        this.fmxElementObjectMap.setSourceFileName(name);
-        this.tsMorphElementObjectMap.setSourceFileName(name);
-
-        this.famixRep.famixEntitiesTracker.currentSourceFileToAdd = name;
     }
 
     public setAbsolutePath(path: string) {
@@ -153,7 +135,9 @@ export class EntityDictionary {
      */
     public makeFamixIndexFileAnchor(sourceElement: TSMorphObjectType, famixElement: Famix.SourcedEntity): void {
         // Famix.Comment is not a named entity (does not have a fullyQualifiedName)
-        if (!(famixElement instanceof Famix.Comment)) {  // must be a named entity
+        if (!(famixElement instanceof Famix.Comment)
+            // TODO: consider better approach for the associations, split the NamedEntity class into 2, extend it from inheritance
+            && !(famixElement instanceof Famix.Inheritance)) {  // must be a named entity
             // insanity check: named entities should have fullyQualifiedName
             const fullyQualifiedName = (famixElement as Famix.NamedEntity).fullyQualifiedName;
             if (!fullyQualifiedName || fullyQualifiedName === this.UNKNOWN_VALUE) {
@@ -169,27 +153,8 @@ export class EntityDictionary {
         if (sourceElement !== null) {
             const absolutePathProject = this.getAbsolutePath();
         
-            const absolutePath = path.normalize(sourceElement.getSourceFile().getFilePath());
-
-            const positionNodeModules = absolutePath.indexOf('node_modules');
-
-            let pathInProject: string = "";
-
-            if (positionNodeModules !== -1) {
-                const pathFromNodeModules = absolutePath.substring(positionNodeModules);
-                pathInProject = pathFromNodeModules;
-            } else {
-                pathInProject = convertToRelativePath(absolutePath, absolutePathProject);
-            }
-
-            // revert any backslashes to forward slashes (path.normalize on windows introduces them)
-            pathInProject = pathInProject.replace(/\\/g, "/");
-
-            if (pathInProject.startsWith("/")) {
-                pathInProject = pathInProject.substring(1);
-            }
-
-            fmxIndexFileAnchor.fileName = pathInProject;
+            const absolutePath = sourceElement.getSourceFile().getFilePath();
+            fmxIndexFileAnchor.fileName = getFamixIndexFileAnchorFileName(absolutePath, absolutePathProject);
             let sourceStart, sourceEnd
             // ,sourceLineStart, sourceLineEnd
             : number;
@@ -1393,6 +1358,8 @@ export class EntityDictionary {
 
         fmxInheritance.subclass = subClass;
         fmxInheritance.superclass = superClass;
+        // TODO: use the correct heritage clause instead of the baseClassOrInterface
+        this.makeFamixIndexFileAnchor(baseClassOrInterface, fmxInheritance);
 
         this.famixRep.addElement(fmxInheritance);
         // SHOULD THERE BE A SOURCE ANCHOR FOR INHERITANCE?

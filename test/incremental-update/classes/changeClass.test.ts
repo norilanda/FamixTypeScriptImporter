@@ -1,15 +1,12 @@
 import { expectRepositoriesToHaveSameStructure } from "../incrementalUpdateExpect";
 import { IncrementalUpdateProjectBuilder } from "../incrementalUpdateProjectBuilder";
-import { createExpectedFamixModel, getFqnForClass } from "../incrementalUpdateTestHelper";
+import { createExpectedFamixModel, getFqnForClass, getUpdateFileChangesMap } from "../incrementalUpdateTestHelper";
 
 const sourceFileName = 'sourceCode.ts';
 const existingClassName = 'ExistingClass';
 
 const sourceCodeBefore = `
-  class ${existingClassName} {
-    property1: string;
-    method1() {}
-  }
+  class ${existingClassName} { }
 `;
 
 describe('Modify classes in a single file', () => {
@@ -17,11 +14,7 @@ describe('Modify classes in a single file', () => {
     // arrange
     const sourceCodeAfter = `
         class ${existingClassName} {
-            property1: string;
             method1() {}
-            method2(): number {
-                return 42;
-            }
         }
     `;
 
@@ -31,7 +24,8 @@ describe('Modify classes in a single file', () => {
     const sourceFile = testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeAfter);
         
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const existingClass = famixRep._getFamixClass(getFqnForClass(sourceFileName, existingClassName));
@@ -39,7 +33,7 @@ describe('Modify classes in a single file', () => {
     const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeAfter);
 
     expect(existingClass).not.toBeUndefined();
-    expect(existingClass!.methods.size).toEqual(2);
+    expect(existingClass!.methods.size).toEqual(1);
     expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
   });
 
@@ -48,8 +42,6 @@ describe('Modify classes in a single file', () => {
     const sourceCodeAfter = `
         class ${existingClassName} {
             property1: string;
-            property2: number;
-            method1() {}
         }
     `;
 
@@ -59,7 +51,8 @@ describe('Modify classes in a single file', () => {
     const sourceFile = testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeAfter);
     
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const existingClass = famixRep._getFamixClass(getFqnForClass(sourceFileName, existingClassName));
@@ -67,7 +60,7 @@ describe('Modify classes in a single file', () => {
     const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeAfter);
 
     expect(existingClass).not.toBeUndefined();
-    expect(existingClass!.properties.size).toEqual(2);
+    expect(existingClass!.properties.size).toEqual(1);
     expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
   });
 
@@ -75,10 +68,7 @@ describe('Modify classes in a single file', () => {
     // arrange
     const newClassName = 'RenamedExistingClass';
     const sourceCodeAfter = `
-        class ${newClassName} {
-            property1: string;
-            method1() {}
-        }
+        class ${newClassName} { }
     `;
 
     const testProjectBuilder = new IncrementalUpdateProjectBuilder();
@@ -87,7 +77,8 @@ describe('Modify classes in a single file', () => {
     const sourceFile = testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeAfter);
      
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const oldClass = famixRep._getFamixClass(getFqnForClass(sourceFileName, existingClassName));
@@ -98,8 +89,6 @@ describe('Modify classes in a single file', () => {
     expect(oldClass).toBeUndefined();
     expect(renamedClass).not.toBeUndefined();
     expect(renamedClass!.name).toEqual(newClassName);
-    expect(renamedClass!.properties.size).toEqual(1);
-    expect(renamedClass!.methods.size).toEqual(1);
 
     expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
   });

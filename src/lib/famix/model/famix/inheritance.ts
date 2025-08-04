@@ -1,9 +1,9 @@
 import { FamixJSONExporter } from "../../famix_JSON_exporter";
 import { Class } from "./class";
-import { Entity } from "./entity";
 import { Interface } from "./interface";
+import { SourcedEntity } from "./sourced_entity";
 
-export class Inheritance extends Entity {
+export class Inheritance extends SourcedEntity {
 
     private _superclass!: Class | Interface;
     private _subclass!: Class | Interface;

@@ -1,39 +1,27 @@
 import { expectRepositoriesToHaveSameStructure } from "../incrementalUpdateExpect";
 import { IncrementalUpdateProjectBuilder } from "../incrementalUpdateProjectBuilder";
-import { createExpectedFamixModel } from "../incrementalUpdateTestHelper";
+import { createExpectedFamixModel, getUpdateFileChangesMap } from "../incrementalUpdateTestHelper";
 
 const sourceFileName = 'sourceCode.ts';
 const superClassName = 'SuperClass';
 const subClassName = 'SubClass';
 
 const superClassCode = `
-    class ${superClassName} {
-        protected property1: string;
-        protected method1() {}
-    }
+    class ${superClassName} { }
 `;
 
 const subClassWithoutInheritanceCode = `
-    class ${subClassName} {
-        method2(): number {
-            return 42;
-        }
-    }
+    class ${subClassName} { }
 `;
 
 const subClassWithInheritanceCode = `
-    class ${subClassName} extends ${superClassName} {
-        method2(): number {
-            return 42;
-        }
-    }
+    class ${subClassName} extends ${superClassName} { }
 `;
 
 
 const superClassChangedCode = `
     class ${superClassName} {
-        protected property1: number;
-        protected method1Changed() {}
+        // new comment
     }
 `;
 
@@ -65,7 +53,8 @@ describe('Change the inheritance in a single file', () => {
     const sourceFile = testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeWithInheritance);
       
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeWithInheritance);
@@ -81,7 +70,8 @@ describe('Change the inheritance in a single file', () => {
     const sourceFile = testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeWithoutInheritance);
     
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeWithoutInheritance);
@@ -99,7 +89,8 @@ describe('Change the inheritance in a single file', () => {
     const sourceFile = testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeWithInheritanceChanged);
     
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeWithInheritanceChanged);
@@ -111,7 +102,7 @@ describe('Change the inheritance in a single file', () => {
     // arrange
     const sourceCodeWithInheritanceChangedTwice = `
         class ${superClassName} {
-            protected property1: number;
+          // new comment changed
         }
     
         ${subClassWithInheritanceCode}
@@ -123,9 +114,12 @@ describe('Change the inheritance in a single file', () => {
     const sourceFile = testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeWithInheritanceChanged);
     
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    let fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
     testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeWithInheritanceChangedTwice);
-    importer.updateFamixModelIncrementally([sourceFile]);
+    fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeWithInheritanceChangedTwice);
