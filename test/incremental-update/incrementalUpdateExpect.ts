@@ -6,9 +6,9 @@ const classCompareFunction = (actual: FamixBaseElement, expected: FamixBaseEleme
     const actualAsClass = actual as Class;
     const expectedAsClass = expected as Class;
     
-    return actualAsClass.fullyQualifiedName === expectedAsClass.fullyQualifiedName
-        && actualAsClass.subInheritances.size === expectedAsClass.subInheritances.size
-        && actualAsClass.superInheritances.size === expectedAsClass.superInheritances.size;
+    return actualAsClass.fullyQualifiedName === expectedAsClass.fullyQualifiedName &&
+        actualAsClass.subInheritances.size === expectedAsClass.subInheritances.size &&
+        actualAsClass.superInheritances.size === expectedAsClass.superInheritances.size;
     // TODO: add more properties to compare
 };
 
