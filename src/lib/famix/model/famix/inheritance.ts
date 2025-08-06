@@ -1,9 +1,10 @@
 import { FamixJSONExporter } from "../../famix_JSON_exporter";
+import { FullyQualifiedNameEntity } from "../interfaces";
 import { Class } from "./class";
 import { Interface } from "./interface";
 import { SourcedEntity } from "./sourced_entity";
 
-export class Inheritance extends SourcedEntity {
+export class Inheritance extends SourcedEntity implements FullyQualifiedNameEntity {
 
     private _superclass!: Class | Interface;
     private _subclass!: Class | Interface;
@@ -36,5 +37,9 @@ export class Inheritance extends SourcedEntity {
     set subclass(subclass: Class | Interface) {
         this._subclass = subclass;
         subclass.addSuperInheritance(this);
+    }
+
+    get fullyQualifiedName(): string {
+        return `${this.subclass.fullyQualifiedName} extends ${this.superclass.fullyQualifiedName}`;
     }
 }

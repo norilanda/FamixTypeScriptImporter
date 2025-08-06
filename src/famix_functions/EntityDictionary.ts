@@ -18,6 +18,7 @@ import path from "path";
 import { convertToRelativePath } from "./helpers_path";
 import { SourceFileDataMap } from "./SourceFileData";
 import { getFamixIndexFileAnchorFileName } from "./famixIndexFileAnchorHelper";
+import { FullyQualifiedNameEntity } from "src/lib/famix/model/interfaces";
 
 export type TSMorphObjectType = ImportDeclaration | ImportEqualsDeclaration | SourceFile | ModuleDeclaration | ClassDeclaration | InterfaceDeclaration | MethodDeclaration | ConstructorDeclaration | MethodSignature | FunctionDeclaration | FunctionExpression | ParameterDeclaration | VariableDeclaration | PropertyDeclaration | PropertySignature | TypeParameterDeclaration | Identifier | Decorator | GetAccessorDeclaration | SetAccessorDeclaration | ImportSpecifier | CommentRange | EnumDeclaration | EnumMember | TypeAliasDeclaration | ExpressionWithTypeArguments | TSMorphParametricType;
 
@@ -135,11 +136,9 @@ export class EntityDictionary {
      */
     public makeFamixIndexFileAnchor(sourceElement: TSMorphObjectType, famixElement: Famix.SourcedEntity): void {
         // Famix.Comment is not a named entity (does not have a fullyQualifiedName)
-        if (!(famixElement instanceof Famix.Comment)
-            // TODO: consider better approach for the associations, split the NamedEntity class into 2, extend it from inheritance
-            && !(famixElement instanceof Famix.Inheritance)) {  // must be a named entity
+        if (!(famixElement instanceof Famix.Comment)) {  // must be a named entity
             // insanity check: named entities should have fullyQualifiedName
-            const fullyQualifiedName = (famixElement as Famix.NamedEntity).fullyQualifiedName;
+            const fullyQualifiedName = (famixElement as unknown as FullyQualifiedNameEntity).fullyQualifiedName;
             if (!fullyQualifiedName || fullyQualifiedName === this.UNKNOWN_VALUE) {
                 throw new Error(`Famix element ${famixElement.constructor.name} has no valid fullyQualifiedName.`);
             }
