@@ -11,7 +11,7 @@ export class FamixRepository {
     private elements = new Set<FamixBaseElement>(); // All Famix elements
     // DO WE NEED THESE SETS? THEY ARE ONLY USED IN METHODS THAT ARE USED IN TESTS
     // private famixClasses = new Set<Class>(); // All Famix classes
-    private famixInterfaces = new Set<Interface>(); // All Famix interfaces
+    // private famixInterfaces = new Set<Interface>(); // All Famix interfaces
     private famixModules = new Set<Module>(); // All Famix namespaces
     private famixMethods = new Set<Method>(); // All Famix methods
     private famixVariables = new Set<Variable>(); // All Famix variables
@@ -96,10 +96,10 @@ export class FamixRepository {
             this.elements.delete(entity);
             // if (entity instanceof Class) {
             //     this.famixClasses.delete(entity);
+            // } else if (entity instanceof Interface) {
+            //     this.famixInterfaces.delete(entity);
             // } else 
-                if (entity instanceof Interface) {
-                this.famixInterfaces.delete(entity);
-            } else if (entity instanceof Module) {
+            if (entity instanceof Module) {
                 this.famixModules.delete(entity);
             } else if (entity instanceof Variable) {
                 this.famixVariables.delete(entity);
@@ -183,7 +183,9 @@ export class FamixRepository {
      * @returns The Famix interface corresponding to the name or undefined if it doesn't exist
      */
     public _getFamixInterface(fullyQualifiedName: string): Interface | undefined {
-        return Array.from(this.famixInterfaces.values()).find(ns => ns.fullyQualifiedName === fullyQualifiedName);
+        return Array.from(this.elements.values())
+            .filter(e => e instanceof Interface)
+            .find(ns => ns.fullyQualifiedName === fullyQualifiedName);
     }
 
     /**
@@ -291,10 +293,10 @@ export class FamixRepository {
         logger.debug(`Adding Famix element ${element.constructor.name} with id ${element.id}`);
         // if (element instanceof Class) {
         //     this.famixClasses.add(element);
+        // } else if (element instanceof Interface) {
+        //     this.famixInterfaces.add(element);
         // } else 
-            if (element instanceof Interface) {
-            this.famixInterfaces.add(element);
-        } else if (element instanceof Module) {
+        if (element instanceof Module) {
             this.famixModules.add(element);
         } else if (element instanceof Variable) {
             this.famixVariables.add(element);
