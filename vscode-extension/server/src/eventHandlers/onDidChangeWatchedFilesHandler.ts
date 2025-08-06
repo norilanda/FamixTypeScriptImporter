@@ -22,8 +22,8 @@ export const onDidChangeWatchedFiles = async (
             connection.window.showErrorMessage(exportResult.error.message);
             return;
         }
-    } catch {
-        connection.window.showErrorMessage(`Error processing file changes.`);
+    } catch (error) {
+        connection.window.showErrorMessage(`Error processing file changes: ${error}`);
         return;
     }
 };
