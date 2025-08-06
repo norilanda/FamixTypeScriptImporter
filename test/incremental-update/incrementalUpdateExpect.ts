@@ -1,4 +1,4 @@
-import { FamixBaseElement } from "../../src";
+import { FamixBaseElement, Inheritance } from "../../src";
 import { FamixRepository } from "../../src";
 import { Class, PrimitiveType } from "../../src";
 
@@ -6,7 +6,9 @@ const classCompareFunction = (actual: FamixBaseElement, expected: FamixBaseEleme
     const actualAsClass = actual as Class;
     const expectedAsClass = expected as Class;
     
-    return actualAsClass.fullyQualifiedName === expectedAsClass.fullyQualifiedName;
+    return actualAsClass.fullyQualifiedName === expectedAsClass.fullyQualifiedName
+        && actualAsClass.subInheritances.size === expectedAsClass.subInheritances.size
+        && actualAsClass.superInheritances.size === expectedAsClass.superInheritances.size;
     // TODO: add more properties to compare
 };
 
@@ -15,6 +17,14 @@ const primitiveTypeCompareFunction = (actual: FamixBaseElement, expected: FamixB
     const expectedAsPrimitiveType = expected as PrimitiveType;
     
     return actualAsPrimitiveType.fullyQualifiedName === expectedAsPrimitiveType.fullyQualifiedName;
+};
+
+const inheritanceCompareFunction = (actual: FamixBaseElement, expected: FamixBaseElement) => {
+    const actualAsInheritance = actual as Inheritance;
+    const expectedAsInheritance = expected as Inheritance;
+
+    return actualAsInheritance.superclass.fullyQualifiedName === expectedAsInheritance.superclass.fullyQualifiedName
+        && actualAsInheritance.subclass.fullyQualifiedName === expectedAsInheritance.subclass.fullyQualifiedName;
 };
 
 export const expectRepositoriesToHaveSameStructure = (actual: FamixRepository, expected: FamixRepository) => {
@@ -38,6 +48,7 @@ export const expectRepositoriesToHaveSameStructure = (actual: FamixRepository, e
     expectElementsToBeEqualSize(actual, expected, "ImportClause");
     // expectElementsToBeEqualSize(actual, expected, "IndexedFileAnchor");
     expectElementsToBeEqualSize(actual, expected, "Inheritance");
+    expectElementsToBeSame(actual, expected, "Inheritance", inheritanceCompareFunction);
     expectElementsToBeEqualSize(actual, expected, "Interface");
     expectElementsToBeEqualSize(actual, expected, "Invocation");
     expectElementsToBeEqualSize(actual, expected, "Method");

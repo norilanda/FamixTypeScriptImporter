@@ -126,4 +126,69 @@ describe('Change the inheritance in a single file', () => {
 
     expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
   });
+
+  it('should add new inheritance association between class and interface', () => {
+    // arrange    
+    // const sourceCodeWithInterfaceWithoutInheritance = `
+    //     interface ${superClassName} { }
+        
+    //     class ${subClassName} { }
+    // `;
+    const sourceCodeWithInterfaceWithoutInheritance = `
+        interface ${superClassName} { }
+        interface A { }
+        
+        class ${subClassName} { }
+    `;
+
+    const sourceCodeWithInterfaceInheritance = `
+        interface ${superClassName} { }
+        interface A { }
+        
+        class ${subClassName} implements ${superClassName}, A { }
+    `;
+
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder.addSourceFile(sourceFileName, sourceCodeWithInterfaceWithoutInheritance);
+    const { importer, famixRep } = testProjectBuilder.build();
+    const sourceFile = testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeWithInterfaceInheritance);
+
+    // act
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeWithInterfaceInheritance);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+
+  it('should add new inheritance association between 2 interfaces', () => {
+    // arrange    
+    const sourceCodeWithInterfaceWithoutInheritance = `
+        interface ${superClassName} { }
+        
+        interface ${subClassName} { }
+    `;
+
+    const sourceCodeWithInterfaceInheritance = `
+        interface ${superClassName} { }
+        
+        interface ${subClassName} extends ${superClassName} { }
+    `;
+
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder.addSourceFile(sourceFileName, sourceCodeWithInterfaceWithoutInheritance);
+    const { importer, famixRep } = testProjectBuilder.build();
+    const sourceFile = testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeWithInterfaceInheritance);
+
+    // act
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeWithInterfaceInheritance);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
 });

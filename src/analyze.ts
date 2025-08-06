@@ -5,7 +5,6 @@ import { Logger } from "tslog";
 import { EntityDictionary, EntityDictionaryConfig } from "./famix_functions/EntityDictionary";
 import path from "path";
 import { TypeScriptToFamixProcessor  } from "./analyze_functions/process_functions";
-import { getClassesFromSourceFile } from "./famix_functions/helpersTsMorphElementsProcessing";
 import { getFamixIndexFileAnchorFileName } from "./famix_functions/famixIndexFileAnchorHelper";
 
 export const logger = new Logger({ name: "ts2famix", minLevel: 2 });
@@ -77,8 +76,7 @@ export class Importer {
             const accesses = this.processFunctions.accessMap.getBySourceFileName(fileName);
             const methodsAndFunctionsWithId = this.processFunctions.methodsAndFunctionsWithId.getBySourceFileName(fileName);
             // const classes = this.processFunctions.classes.getBySourceFileName(fileName);
-            const classes = getClassesFromSourceFile(sourceFile);
-            const interfaces = this.processFunctions.interfaces.getBySourceFileName(fileName);
+            // const interfaces = this.processFunctions.interfaces.getBySourceFileName(fileName);
             const modules = this.processFunctions.modules.getBySourceFileName(fileName);
             const exports = this.processFunctions.listOfExportMaps.getBySourceFileName(fileName);
 
@@ -89,8 +87,11 @@ export class Importer {
             this.processFunctions.processImportClausesForModules(modules, exports);
             this.processFunctions.processAccesses(accesses);
             this.processFunctions.processInvocations(methodsAndFunctionsWithId);
-            this.processFunctions.processInheritances(classes, interfaces, this.processFunctions.interfaces.getAll());
-            this.processFunctions.processConcretisations(classes, interfaces, methodsAndFunctionsWithId);
+            // this.processFunctions.processInheritances(classes, interfaces, this.processFunctions.interfaces.getAll());
+            
+            // this.processFunctions.processConcretisations(classes, interfaces, methodsAndFunctionsWithId);
+            //TODO: fix concretisatoion
+            this.processFunctions.processConcretisations([], [], methodsAndFunctionsWithId);
         });
     }
 
