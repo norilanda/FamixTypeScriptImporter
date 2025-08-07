@@ -928,14 +928,14 @@ export class TypeScriptToFamixProcessor  {
         logger.debug(`Checking class inheritance for ${cls.getName()}`);
         const baseClass = cls.getBaseClass();
         if (baseClass !== undefined) {
-            this.entityDictionary.ensureFamixClassToClassInheritance(cls, baseClass);
+            this.entityDictionary.createFamixClassToClassInheritance(cls, baseClass);
             logger.debug(`class: ${cls.getName()}, (${cls.getType().getText()}), extClass: ${baseClass.getName()}, (${baseClass.getType().getText()})`);
         } // this is false when the class extends an undefined class
         else {
             // check for "extends" of unresolved class
             const undefinedExtendedClass = cls.getExtends();
             if (undefinedExtendedClass) {
-                this.entityDictionary.ensureFamixClassToClassInheritance(cls, undefinedExtendedClass);
+                this.entityDictionary.createFamixClassToClassInheritance(cls, undefinedExtendedClass);
                 logger.debug(`class: ${cls.getName()}, (${cls.getType().getText()}), undefinedExtendedClass: ${undefinedExtendedClass.getText()}`);
             }
         }
@@ -943,7 +943,7 @@ export class TypeScriptToFamixProcessor  {
         logger.debug(`Checking interface inheritance for ${cls.getName()}`);
 
         cls.getImplements().forEach(implementedIF => {
-            this.entityDictionary.ensureFamixInterfaceInheritance(cls, implementedIF);
+            this.entityDictionary.createFamixInterfaceInheritance(cls, implementedIF);
             logger.debug(`class: ${cls.getName()}, (${cls.getType().getText()}), impInter: ${(implementedIF instanceof InterfaceDeclaration) ? implementedIF.getName() : implementedIF.getExpression().getText()}, (${(implementedIF instanceof InterfaceDeclaration) ? implementedIF.getType().getText() : implementedIF.getExpression().getText()})`);
         });
     }
@@ -953,7 +953,7 @@ export class TypeScriptToFamixProcessor  {
             logger.debug(`Checking interface inheritance for ${interFace.getName()}`);
 
             interFace.getExtends().forEach(extendedInterface => {
-                this.entityDictionary.ensureFamixInterfaceInheritance(interFace, extendedInterface);
+                this.entityDictionary.createFamixInterfaceInheritance(interFace, extendedInterface);
                 logger.debug(`interFace: ${interFace.getName()}, (${interFace.getType().getText()}), extendedInterface: ${(extendedInterface instanceof InterfaceDeclaration) ? extendedInterface.getName() : extendedInterface.getExpression().getText()}, (${(extendedInterface instanceof InterfaceDeclaration) ? extendedInterface.getType().getText() : extendedInterface.getExpression().getText()})`);
             });
         }

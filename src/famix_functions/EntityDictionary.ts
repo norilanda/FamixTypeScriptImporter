@@ -1272,7 +1272,7 @@ export class EntityDictionary {
         this.fmxElementObjectMap.set(fmxInvocation,nodeReferringToInvocable);
     }
 
-    public ensureFamixClassToClassInheritance(
+    public createFamixClassToClassInheritance(
         subClass: ClassDeclaration, superClass: ClassDeclaration | ExpressionWithTypeArguments
     ) {
         const subClassFamix = this.ensureFamixClass(subClass);
@@ -1297,7 +1297,7 @@ export class EntityDictionary {
         this.createFamixInheritance(subClassFamix, superClassFamix, subClass);
     }
 
-    public ensureFamixInterfaceInheritance(
+    public createFamixInterfaceInheritance(
         subClassOrInterface: ClassDeclaration | InterfaceDeclaration, superInterface: InterfaceDeclaration | ExpressionWithTypeArguments
     ) {
         const getSubFamixElement = () => {
