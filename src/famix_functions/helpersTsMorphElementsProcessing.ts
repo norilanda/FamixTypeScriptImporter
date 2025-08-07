@@ -78,7 +78,6 @@ function resolveSymbolToInterfaceOrClassDeclaration(symbol: TSMorphSymbol): Inte
             const importSpecifier = declaration as ImportSpecifier;
             const importDeclaration = importSpecifier.getImportDeclaration();
             const moduleSpecifier = importDeclaration.getModuleSpecifierSourceFile();
-            // importDeclaration.
 
             if (moduleSpecifier) {
                 const exportedSymbols = moduleSpecifier.getExportSymbols();
