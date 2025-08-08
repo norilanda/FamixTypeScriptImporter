@@ -3,6 +3,7 @@ import { Class, Interface, Variable, Method, ArrowFunction, Function as FamixFun
 import * as Famix from "./model/famix";
 import { TSMorphObjectType } from "../../famix_functions/EntityDictionary";
 import { logger } from "../../analyze";
+import { EntityWithSourceAnchor } from "./model/famix/sourced_entity";
 
 /**
  * This class is used to store all Famix elements
@@ -73,7 +74,7 @@ export class FamixRepository {
 
     private getElementsBySourceFile(sourceFile: string): FamixBaseElement[] {
         return Array.from(this.elements.values()).filter(e => {
-            if (e instanceof Famix.SourcedEntity && e.sourceAnchor && e.sourceAnchor instanceof Famix.IndexedFileAnchor) {
+            if (e instanceof EntityWithSourceAnchor && e.sourceAnchor && e.sourceAnchor instanceof Famix.IndexedFileAnchor) {
                 return e.sourceAnchor.fileName === sourceFile;
             } else if (e instanceof Famix.IndexedFileAnchor) {
                 return e.fileName === sourceFile;

@@ -2,9 +2,9 @@ import { FamixJSONExporter } from "../../famix_JSON_exporter";
 import { FullyQualifiedNameEntity } from "../interfaces";
 import { Class } from "./class";
 import { Interface } from "./interface";
-import { SourcedEntity } from "./sourced_entity";
+import { EntityWithSourceAnchor } from "./sourced_entity";
 
-export class Inheritance extends SourcedEntity implements FullyQualifiedNameEntity {
+export class Inheritance extends EntityWithSourceAnchor implements FullyQualifiedNameEntity {
 
     private _superclass!: Class | Interface;
     private _subclass!: Class | Interface;
