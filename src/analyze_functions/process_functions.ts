@@ -1,4 +1,4 @@
-import { ClassDeclaration, MethodDeclaration, VariableStatement, FunctionDeclaration, VariableDeclaration, InterfaceDeclaration, ParameterDeclaration, ConstructorDeclaration, MethodSignature, SourceFile, ModuleDeclaration, PropertyDeclaration, PropertySignature, Decorator, GetAccessorDeclaration, SetAccessorDeclaration, ExportedDeclarations, CommentRange, EnumDeclaration, EnumMember, TypeParameterDeclaration, TypeAliasDeclaration, SyntaxKind, FunctionExpression, Block, Identifier, ExpressionWithTypeArguments, ImportDeclaration, Node, ArrowFunction, Scope, ClassExpression } from "ts-morph";
+import { ClassDeclaration, MethodDeclaration, VariableStatement, FunctionDeclaration, VariableDeclaration, InterfaceDeclaration, ParameterDeclaration, ConstructorDeclaration, MethodSignature, SourceFile, ModuleDeclaration, PropertyDeclaration, PropertySignature, Decorator, GetAccessorDeclaration, SetAccessorDeclaration, ExportedDeclarations, CommentRange, EnumDeclaration, EnumMember, TypeParameterDeclaration, TypeAliasDeclaration, SyntaxKind, FunctionExpression, Block, Identifier, ImportDeclaration, Node, ArrowFunction, Scope, ClassExpression } from "ts-morph";
 import * as Famix from "../lib/famix/model/famix";
 import { calculate } from "../lib/ts-complex/cyclomatic-service";
 import * as fs from 'fs';
@@ -6,7 +6,7 @@ import { logger } from "../analyze";
 import { getFQN } from "../fqn";
 import { EntityDictionary, InvocableType } from "../famix_functions/EntityDictionary";
 import { SourceFileDataArray, SourceFileDataMap, SourceFileDataSet } from "../famix_functions/SourceFileData";
-import { getClassesFromSourceFile } from "../famix_functions/helpersTsMorphElementsProcessing";
+import { getClassesDeclaredInArrowFunctions } from "../famix_functions/helpersTsMorphElementsProcessing";
 
 export type AccessibleTSMorphElement = ParameterDeclaration | VariableDeclaration | PropertyDeclaration | EnumMember;
 export type FamixID = number;
@@ -31,7 +31,7 @@ export class TypeScriptToFamixProcessor  {
 
     public accessMap = new SourceFileDataMap<FamixID, AccessibleTSMorphElement>(); // Maps the Famix parameter, variable, property and enum value ids to their ts-morph parameter, variable, property or enum member object
     // public classes = new SourceFileDataArray<ClassDeclaration>(); // Array of all the classes of the source files
-    public interfaces = new SourceFileDataArray<InterfaceDeclaration>(); // Array of all the interfaces of the source files
+    // public interfaces = new SourceFileDataArray<InterfaceDeclaration>(); // Array of all the interfaces of the source files
     public modules = new SourceFileDataArray<SourceFile>(); // Array of all the source files which are modules
     public listOfExportMaps = new SourceFileDataArray<ReadonlyMap<string, ExportedDeclarations[]>>(); // Array of all the export maps
     private processedNodesWithTypeParams = new SourceFileDataSet<number>(); // Set of nodes that have been processed and have type parameters
@@ -47,19 +47,19 @@ export class TypeScriptToFamixProcessor  {
         this.methodsAndFunctionsWithId.setSourceFileName(sourceFileName);
         this.accessMap.setSourceFileName(sourceFileName);
         // this.classes.setSourceFileName(sourceFileName);
-        this.interfaces.setSourceFileName(sourceFileName);
+        // this.interfaces.setSourceFileName(sourceFileName);
         this.modules.setSourceFileName(sourceFileName);
         this.listOfExportMaps.setSourceFileName(sourceFileName);
         this.processedNodesWithTypeParams.setSourceFileName(sourceFileName);
 
-        this.entityDictionary.setCurrentSourceFileName(sourceFileName);
+        // this.entityDictionary.setCurrentSourceFileName(sourceFileName);
     }
 
     public removeNodesBySourceFile(sourceFile: string) {
         this.methodsAndFunctionsWithId.removeBySourceFileName(sourceFile);
         this.accessMap.removeBySourceFileName(sourceFile);
         // this.classes.removeBySourceFileName(sourceFile);
-        this.interfaces.removeBySourceFileName(sourceFile);
+        // this.interfaces.removeBySourceFileName(sourceFile);
         this.modules.removeBySourceFileName(sourceFile);
         this.listOfExportMaps.removeBySourceFileName(sourceFile);
         this.processedNodesWithTypeParams.removeBySourceFileName(sourceFile);
@@ -84,37 +84,6 @@ export class TypeScriptToFamixProcessor  {
             path = importDecl.getModuleSpecifierSourceFile()!.getFilePath();
         }
         return path;
-    }
-    
-    
-    /**
-     * Gets the interfaces implemented or extended by a class or an interface
-     * @param interfaces An array of interfaces
-     * @param subClass A class or an interface
-     * @returns An array of InterfaceDeclaration and ExpressionWithTypeArguments containing the interfaces implemented or extended by the subClass
-     */
-    public getImplementedOrExtendedInterfaces(interfaces: Array<InterfaceDeclaration>, subClass: ClassDeclaration | InterfaceDeclaration): Array<InterfaceDeclaration | ExpressionWithTypeArguments> {
-        let impOrExtInterfaces: Array<ExpressionWithTypeArguments>;
-        if (subClass instanceof ClassDeclaration) {
-            impOrExtInterfaces = subClass.getImplements();
-        }
-        else {
-            impOrExtInterfaces = subClass.getExtends();
-        }
-    
-        const interfacesNames = interfaces.map(i => i.getName());
-        const implementedOrExtendedInterfaces = new Array<InterfaceDeclaration | ExpressionWithTypeArguments>();
-    
-        impOrExtInterfaces.forEach(i => {
-            if (interfacesNames.includes(i.getExpression().getText())) {
-                implementedOrExtendedInterfaces.push(interfaces[interfacesNames.indexOf(i.getExpression().getText())]);
-            }
-            else {
-                implementedOrExtendedInterfaces.push(i);
-            }
-        });
-    
-        return implementedOrExtendedInterfaces;
     }
     
     public processFiles(sourceFiles: Array<SourceFile>): void {
@@ -209,7 +178,8 @@ export class TypeScriptToFamixProcessor  {
      */
     private processClasses(m: SourceFile | ModuleDeclaration, fmxScope: Famix.ScriptEntity | Famix.Module): void {
         logger.debug(`processClasses: ---------- Finding Classes:`);
-        const classes = getClassesFromSourceFile(m);
+        const classesInArrowFunctions = getClassesDeclaredInArrowFunctions(m);
+        const classes = m.getClasses().concat(classesInArrowFunctions);
         classes.forEach(c => {
             const fmxClass = this.processClass(c);
             fmxScope.addType(fmxClass);
@@ -358,7 +328,9 @@ export class TypeScriptToFamixProcessor  {
             const fmxAcc = this.processMethod(acc);
             fmxClass.addMethod(fmxAcc);
         });
-    
+
+        this.processInheritanceForClass(c);
+
         return fmxClass;
     }
     
@@ -368,16 +340,18 @@ export class TypeScriptToFamixProcessor  {
      * @returns A Famix.Interface or a Famix.ParametricInterface representing the interface
      */
     private processInterface(i: InterfaceDeclaration): Famix.Interface | Famix.ParametricInterface {
-        this.interfaces.push(i);
+        // this.interfaces.push(i);
     
-        const fmxInterface = this.entityDictionary.createOrGetFamixInterface(i);
+        const fmxInterface = this.entityDictionary.ensureFamixInterface(i);
     
         logger.debug(`Interface: ${i.getName()}, (${i.getType().getText()}), fqn = ${fmxInterface.fullyQualifiedName}`);
     
         this.processComments(i, fmxInterface);
     
         this.processStructuredType(i, fmxInterface);
-    
+
+        this.processInheritanceForInterface(i);
+
         return fmxInterface;
     }
     
@@ -949,52 +923,43 @@ export class TypeScriptToFamixProcessor  {
         });
         return importFoundInExports;
     }
-    
-    /**
-     * Builds a Famix model for the inheritances of the classes and interfaces of the source files
-     * @param classes An array of classes
-     * @param interfaces An array of interfaces
-     */
-    public processInheritances(classes: ClassDeclaration[], interfaces: InterfaceDeclaration[], allInterfaces: InterfaceDeclaration[]): void {
-        logger.info(`Creating inheritances:`);
-        classes.forEach(cls => {
-            logger.debug(`Checking class inheritance for ${cls.getName()}`);
-                const baseClass = cls.getBaseClass();
-                if (baseClass !== undefined) {
-                    this.entityDictionary.createOrGetFamixInheritance(cls, baseClass);
-                    logger.debug(`class: ${cls.getName()}, (${cls.getType().getText()}), extClass: ${baseClass.getName()}, (${baseClass.getType().getText()})`);
-                } // this is false when the class extends an undefined class
-                else {
-                    // check for "extends" of unresolved class
-                    const undefinedExtendedClass = cls.getExtends();
-                    if (undefinedExtendedClass) {
-                        this.entityDictionary.createOrGetFamixInheritance(cls, undefinedExtendedClass);
-                        logger.debug(`class: ${cls.getName()}, (${cls.getType().getText()}), undefinedExtendedClass: ${undefinedExtendedClass.getText()}`);
-                    }
-                }
-    
-                logger.debug(`Checking interface inheritance for ${cls.getName()}`);
-                const implementedInterfaces = this.getImplementedOrExtendedInterfaces(allInterfaces, cls);
-                implementedInterfaces.forEach(implementedIF => {
-                    this.entityDictionary.createOrGetFamixInheritance(cls, implementedIF);
-                    logger.debug(`class: ${cls.getName()}, (${cls.getType().getText()}), impInter: ${(implementedIF instanceof InterfaceDeclaration) ? implementedIF.getName() : implementedIF.getExpression().getText()}, (${(implementedIF instanceof InterfaceDeclaration) ? implementedIF.getType().getText() : implementedIF.getExpression().getText()})`);
-                });
-        });
-    
-        interfaces.forEach(interFace => {
-            try {
-                logger.debug(`Checking interface inheritance for ${interFace.getName()}`);
-                const extendedInterfaces = this.getImplementedOrExtendedInterfaces(allInterfaces, interFace);
-                extendedInterfaces.forEach(extendedInterface => {
-                    this.entityDictionary.createOrGetFamixInheritance(interFace, extendedInterface);
-    
-                    logger.debug(`interFace: ${interFace.getName()}, (${interFace.getType().getText()}), extendedInterface: ${(extendedInterface instanceof InterfaceDeclaration) ? extendedInterface.getName() : extendedInterface.getExpression().getText()}, (${(extendedInterface instanceof InterfaceDeclaration) ? extendedInterface.getType().getText() : extendedInterface.getExpression().getText()})`);
-                });
+
+    private processInheritanceForClass(cls: ClassDeclaration) {
+        logger.debug(`Checking class inheritance for ${cls.getName()}`);
+        const baseClass = cls.getBaseClass();
+        if (baseClass !== undefined) {
+            this.entityDictionary.createFamixClassToClassInheritance(cls, baseClass);
+            logger.debug(`class: ${cls.getName()}, (${cls.getType().getText()}), extClass: ${baseClass.getName()}, (${baseClass.getType().getText()})`);
+        } // this is false when the class extends an undefined class
+        else {
+            // check for "extends" of unresolved class
+            const undefinedExtendedClass = cls.getExtends();
+            if (undefinedExtendedClass) {
+                this.entityDictionary.createFamixClassToClassInheritance(cls, undefinedExtendedClass);
+                logger.debug(`class: ${cls.getName()}, (${cls.getType().getText()}), undefinedExtendedClass: ${undefinedExtendedClass.getText()}`);
             }
-            catch (error) {
-                logger.error(`> WARNING: got exception ${error}. Continuing...`);
-            }
+        }
+
+        logger.debug(`Checking interface inheritance for ${cls.getName()}`);
+
+        cls.getImplements().forEach(implementedIF => {
+            this.entityDictionary.createFamixInterfaceInheritance(cls, implementedIF);
+            logger.debug(`class: ${cls.getName()}, (${cls.getType().getText()}), impInter: ${(implementedIF instanceof InterfaceDeclaration) ? implementedIF.getName() : implementedIF.getExpression().getText()}, (${(implementedIF instanceof InterfaceDeclaration) ? implementedIF.getType().getText() : implementedIF.getExpression().getText()})`);
         });
+    }
+
+    private processInheritanceForInterface(interFace: InterfaceDeclaration) {
+        try {
+            logger.debug(`Checking interface inheritance for ${interFace.getName()}`);
+
+            interFace.getExtends().forEach(extendedInterface => {
+                this.entityDictionary.createFamixInterfaceInheritance(interFace, extendedInterface);
+                logger.debug(`interFace: ${interFace.getName()}, (${interFace.getType().getText()}), extendedInterface: ${(extendedInterface instanceof InterfaceDeclaration) ? extendedInterface.getName() : extendedInterface.getExpression().getText()}, (${(extendedInterface instanceof InterfaceDeclaration) ? extendedInterface.getType().getText() : extendedInterface.getExpression().getText()})`);
+            });
+        }
+        catch (error) {
+            logger.error(`> WARNING: got exception ${error}. Continuing...`);
+        }
     }
     
     /**

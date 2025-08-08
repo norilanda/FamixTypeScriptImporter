@@ -4,8 +4,9 @@ import { Invocation } from "./invocation";
 import { ImportClause } from "./import_clause";
 import { Alias } from "./alias";
 import { Decorator } from "./decorator";
+import { FullyQualifiedNameEntity } from "../interfaces";
 
-export class NamedEntity extends SourcedEntity {
+export class NamedEntity extends SourcedEntity implements FullyQualifiedNameEntity {
 
     private _fullyQualifiedName!: string;
     private _receivedInvocations: Set<Invocation> = new Set();

@@ -14,10 +14,16 @@ export const onDidChangeWatchedFiles = async (
 
     const mapSlice = fileChangesMap.getAndClearFileChangesMap();
     // TODO: ensure that there is no race condition (when new changes are added while we are processing the previous ones)
-    await famixProjectManager.updateFamixModelIncrementally(mapSlice);
-    const exportResult = await famixProjectManager.generateNewJsonForFamixModel();
-    if (exportResult.isErr()) {
-        connection.window.showErrorMessage(exportResult.error.message);
+    try {
+        await famixProjectManager.updateFamixModelIncrementally(mapSlice);
+
+        const exportResult = await famixProjectManager.generateNewJsonForFamixModel();
+        if (exportResult.isErr()) {
+            connection.window.showErrorMessage(exportResult.error.message);
+            return;
+        }
+    } catch (error) {
+        connection.window.showErrorMessage(`Error processing file changes: ${error}`);
         return;
     }
 };

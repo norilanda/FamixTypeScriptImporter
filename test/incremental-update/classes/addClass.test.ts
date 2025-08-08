@@ -17,7 +17,7 @@ describe('Add new classes to a single file', () => {
     class ${newClassName} { }
   `;
 
-  it('should create new classes in the Famix representation', async () => {
+  it('should create new classes in the Famix representation', () => {
     // arrange
     const testProjectBuilder = new IncrementalUpdateProjectBuilder();
     testProjectBuilder.addSourceFile(sourceFileName, sourceCodeWithOneClass);
@@ -26,7 +26,7 @@ describe('Add new classes to a single file', () => {
 
     // act
     const fileChangesMap = getUpdateFileChangesMap(sourceFile);
-    await importer.updateFamixModelIncrementally(fileChangesMap);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeWithTwoClasses);

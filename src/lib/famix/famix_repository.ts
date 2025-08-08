@@ -3,7 +3,7 @@ import { Class, Interface, Variable, Method, ArrowFunction, Function as FamixFun
 import * as Famix from "./model/famix";
 import { TSMorphObjectType } from "../../famix_functions/EntityDictionary";
 import { logger } from "../../analyze";
-import { FamixEntitiesTracker } from "./FamixEntitiesTracker";
+import { EntityWithSourceAnchor } from "./model/famix/sourced_entity";
 
 /**
  * This class is used to store all Famix elements
@@ -12,7 +12,7 @@ export class FamixRepository {
     private elements = new Set<FamixBaseElement>(); // All Famix elements
     // DO WE NEED THESE SETS? THEY ARE ONLY USED IN METHODS THAT ARE USED IN TESTS
     // private famixClasses = new Set<Class>(); // All Famix classes
-    private famixInterfaces = new Set<Interface>(); // All Famix interfaces
+    // private famixInterfaces = new Set<Interface>(); // All Famix interfaces
     private famixModules = new Set<Module>(); // All Famix namespaces
     private famixMethods = new Set<Method>(); // All Famix methods
     private famixVariables = new Set<Variable>(); // All Famix variables
@@ -20,11 +20,6 @@ export class FamixRepository {
     private famixFiles = new Set<ScriptEntity | Module>(); // All Famix files
     private idCounter = 1; // Id counter
     private tsMorphObjectMap = new Map<TSMorphObjectType, Famix.Entity>(); // TODO: add this map to have two-way mapping between Famix and TS Morph objects
-    
-    private _famixEntitiesTracker: FamixEntitiesTracker = new FamixEntitiesTracker();
-    public get famixEntitiesTracker(): FamixEntitiesTracker {
-        return this._famixEntitiesTracker;
-    }
 
     constructor() {
         this.addElement(new SourceLanguage());  // add the source language entity (TypeScript)
@@ -77,8 +72,19 @@ export class FamixRepository {
         }
     }
 
+    private getElementsBySourceFile(sourceFile: string): FamixBaseElement[] {
+        return Array.from(this.elements.values()).filter(e => {
+            if (e instanceof EntityWithSourceAnchor && e.sourceAnchor && e.sourceAnchor instanceof Famix.IndexedFileAnchor) {
+                return e.sourceAnchor.fileName === sourceFile;
+            } else if (e instanceof Famix.IndexedFileAnchor) {
+                return e.fileName === sourceFile;
+            }
+            // TODO: check for the SourceAnchor type, maybe make the SourceAnchor abstract cause there is no instance of this class
+        });
+    }
+
     public removeEntitiesBySourceFile(sourceFile: string): FamixBaseElement[] {
-        const entitiesToRemove = Array.from(this.famixEntitiesTracker.removeEntitiesBySourceFile(sourceFile) || []);
+        const entitiesToRemove = this.getElementsBySourceFile(sourceFile);
 
         this.removeElements(entitiesToRemove);
         this.removeRelatedAssociations(entitiesToRemove);
@@ -91,10 +97,10 @@ export class FamixRepository {
             this.elements.delete(entity);
             // if (entity instanceof Class) {
             //     this.famixClasses.delete(entity);
+            // } else if (entity instanceof Interface) {
+            //     this.famixInterfaces.delete(entity);
             // } else 
-                if (entity instanceof Interface) {
-                this.famixInterfaces.delete(entity);
-            } else if (entity instanceof Module) {
+            if (entity instanceof Module) {
                 this.famixModules.delete(entity);
             } else if (entity instanceof Variable) {
                 this.famixVariables.delete(entity);
@@ -106,32 +112,37 @@ export class FamixRepository {
                 this.famixFiles.delete(entity);
             }
 
-            if (entity instanceof Famix.SourcedEntity) {
-                this.elements.delete(entity.sourceAnchor);
-            }
+            // if (entity instanceof Famix.SourcedEntity) {
+            //     this.elements.delete(entity.sourceAnchor);
+            // }
             // TODO: maybe delete smth else?
         }
     }
 
     public removeRelatedAssociations(entities: FamixBaseElement[]): void {
         for (const entity of entities) {
-            Array.from(this.elements.values()).forEach(e => {
-                if (e instanceof Famix.Inheritance && e.subclass === entity) {
-                    this.elements.delete(e);
-                    e.subclass.removeSuperInheritance(e);
-                    e.superclass.removeSubInheritance(e);
-                } else if (e instanceof Famix.ImportClause && e.importingEntity === entity) {
-                    this.elements.delete(e);
-                    e.importingEntity.removeOutgoingImport(e);
-                    e.importedEntity.removeIncomingImport(e);
-                } else if (e instanceof Famix.Access && e.accessor === entity) {
-                    this.elements.delete(e);
-                    e.accessor.removeAccess(e);
-                    e.variable.removeIncomingAccess(e);
-                } else if (e instanceof Famix.Concretisation && e.concreteEntity === entity) {
-                    this.elements.delete(e);
-                }
-            });
+            // Array.from(this.elements.values()).forEach(e => {
+            //     if (e instanceof Famix.Inheritance && e.subclass === entity) {
+            //         this.elements.delete(e);
+            //         e.subclass.removeSuperInheritance(e);
+            //         e.superclass.removeSubInheritance(e);
+            //     } else if (e instanceof Famix.ImportClause && e.importingEntity === entity) {
+            //         this.elements.delete(e);
+            //         e.importingEntity.removeOutgoingImport(e);
+            //         e.importedEntity.removeIncomingImport(e);
+            //     } else if (e instanceof Famix.Access && e.accessor === entity) {
+            //         this.elements.delete(e);
+            //         e.accessor.removeAccess(e);
+            //         e.variable.removeIncomingAccess(e);
+            //     } else if (e instanceof Famix.Concretisation && e.concreteEntity === entity) {
+            //         this.elements.delete(e);
+            //     }
+            // });
+
+            if (entity instanceof Famix.Inheritance) {
+                entity.subclass.removeSuperInheritance(entity);
+                entity.superclass.removeSubInheritance(entity);
+            }
             // TODO: Add more conditions here for other types of associations
         }
     }
@@ -173,7 +184,9 @@ export class FamixRepository {
      * @returns The Famix interface corresponding to the name or undefined if it doesn't exist
      */
     public _getFamixInterface(fullyQualifiedName: string): Interface | undefined {
-        return Array.from(this.famixInterfaces.values()).find(ns => ns.fullyQualifiedName === fullyQualifiedName);
+        return Array.from(this.elements.values())
+            .filter(e => e instanceof Interface)
+            .find(ns => ns.fullyQualifiedName === fullyQualifiedName);
     }
 
     /**
@@ -281,10 +294,10 @@ export class FamixRepository {
         logger.debug(`Adding Famix element ${element.constructor.name} with id ${element.id}`);
         // if (element instanceof Class) {
         //     this.famixClasses.add(element);
+        // } else if (element instanceof Interface) {
+        //     this.famixInterfaces.add(element);
         // } else 
-            if (element instanceof Interface) {
-            this.famixInterfaces.add(element);
-        } else if (element instanceof Module) {
+        if (element instanceof Module) {
             this.famixModules.add(element);
         } else if (element instanceof Variable) {
             this.famixVariables.add(element);
@@ -299,7 +312,6 @@ export class FamixRepository {
         element.id = this.idCounter;
         this.idCounter++;
         this.validateFQNs();
-        this._famixEntitiesTracker.addEntity(element);
     }
 
     /**
