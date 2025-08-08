@@ -18,7 +18,12 @@ import path from "path";
 import { convertToRelativePath } from "./helpers_path";
 import { SourceFileDataMap } from "./SourceFileData";
 import { getFamixIndexFileAnchorFileName } from "./famixIndexFileAnchorHelper";
-import { FullyQualifiedNameEntity } from "src/lib/famix/model/interfaces";
+import { FullyQualifiedNameEntity } from "../lib/famix/model/interfaces";
+
+import { Node as TsMorphNode } from "ts-morph";
+import _ from "lodash";
+import { getInterfaceOrClassDeclarationFromExpression } from "./helpersTsMorphElementsProcessing";
+import { EntityWithSourceAnchor } from "../lib/famix/model/famix/sourced_entity";
 
 export type TSMorphObjectType = ImportDeclaration | ImportEqualsDeclaration | SourceFile | ModuleDeclaration | ClassDeclaration | InterfaceDeclaration | MethodDeclaration | ConstructorDeclaration | MethodSignature | FunctionDeclaration | FunctionExpression | ParameterDeclaration | VariableDeclaration | PropertyDeclaration | PropertySignature | TypeParameterDeclaration | Identifier | Decorator | GetAccessorDeclaration | SetAccessorDeclaration | ImportSpecifier | CommentRange | EnumDeclaration | EnumMember | TypeAliasDeclaration | ExpressionWithTypeArguments | TSMorphParametricType;
 
@@ -134,7 +139,7 @@ export class EntityDictionary {
      * @param sourceElement A source element
      * @param famixElement The Famix model of the source element
      */
-    public makeFamixIndexFileAnchor(sourceElement: TSMorphObjectType, famixElement: Famix.SourcedEntity): void {
+    public makeFamixIndexFileAnchor(sourceElement: TSMorphObjectType, famixElement: EntityWithSourceAnchor): void {
         // Famix.Comment is not a named entity (does not have a fullyQualifiedName)
         if (!(famixElement instanceof Famix.Comment)) {  // must be a named entity
             // insanity check: named entities should have fullyQualifiedName
@@ -1942,12 +1947,6 @@ function isTypeContext(sourceElement: TSMorphObjectType): boolean {
 
     return typeContextKinds.has(sourceElement.getKind());
 }
-
-
-import { Node as TsMorphNode } from "ts-morph";
-import _ from "lodash";
-import { getInterfaceOrClassDeclarationFromExpression } from "./helpersTsMorphElementsProcessing";
-
 
 export function getPrimitiveTypeName(type: Type): string | undefined {
   const flags = type.compilerType.flags;
