@@ -5,6 +5,13 @@ import { Comment } from "./comment";
 import { SourceAnchor } from "./source_anchor";
 import { logger } from "../../../../analyze";
 
+/**
+ * NOTE: Abstract class that encapsulates the sourceAnchor field.
+ * The sourceAnchor property was moved from SourcedEntity to this base class to allow
+ * its reuse in other entities that may need source anchoring, without inheriting all
+ * SourcedEntity properties. This separation enables more flexible composition and
+ * makes it possible to use instanceof checks to determine if an entity supports source anchoring.
+ */
 export abstract class EntityWithSourceAnchor extends Entity {
     protected _sourceAnchor!: SourceAnchor;
     get sourceAnchor() {
