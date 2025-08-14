@@ -95,53 +95,17 @@ export class FamixRepository {
     public removeElements(entities: FamixBaseElement[]): void {
         for (const entity of entities) {
             this.elements.delete(entity);
-            // if (entity instanceof Class) {
-            //     this.famixClasses.delete(entity);
-            // } else if (entity instanceof Interface) {
-            //     this.famixInterfaces.delete(entity);
-            // } else 
-            if (entity instanceof Module) {
-                this.famixModules.delete(entity);
-            } else if (entity instanceof Variable) {
-                this.famixVariables.delete(entity);
-            } else if (entity instanceof Method) {
-                this.famixMethods.delete(entity);
-            } else if (entity instanceof FamixFunctionEntity || entity instanceof ArrowFunction) {
-                this.famixFunctions.delete(entity);
-            } else if (entity instanceof ScriptEntity || entity instanceof Module) {
-                this.famixFiles.delete(entity);
-            }
-
-            // if (entity instanceof Famix.SourcedEntity) {
-            //     this.elements.delete(entity.sourceAnchor);
-            // }
-            // TODO: maybe delete smth else?
         }
     }
 
     public removeRelatedAssociations(entities: FamixBaseElement[]): void {
         for (const entity of entities) {
-            // Array.from(this.elements.values()).forEach(e => {
-            //     if (e instanceof Famix.Inheritance && e.subclass === entity) {
-            //         this.elements.delete(e);
-            //         e.subclass.removeSuperInheritance(e);
-            //         e.superclass.removeSubInheritance(e);
-            //     } else if (e instanceof Famix.ImportClause && e.importingEntity === entity) {
-            //         this.elements.delete(e);
-            //         e.importingEntity.removeOutgoingImport(e);
-            //         e.importedEntity.removeIncomingImport(e);
-            //     } else if (e instanceof Famix.Access && e.accessor === entity) {
-            //         this.elements.delete(e);
-            //         e.accessor.removeAccess(e);
-            //         e.variable.removeIncomingAccess(e);
-            //     } else if (e instanceof Famix.Concretisation && e.concreteEntity === entity) {
-            //         this.elements.delete(e);
-            //     }
-            // });
-
             if (entity instanceof Famix.Inheritance) {
                 entity.subclass.removeSuperInheritance(entity);
                 entity.superclass.removeSubInheritance(entity);
+            } else if (entity instanceof Famix.ImportClause) {
+                entity.importingEntity.removeOutgoingImport(entity);
+                entity.importedEntity.removeIncomingImport(entity);
             }
             // TODO: Add more conditions here for other types of associations
         }

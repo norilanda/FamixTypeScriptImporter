@@ -1,4 +1,4 @@
-import { convertToRelativePath } from "./helpers_path";
+import { convertToRelativePath } from "../famix_functions/helpers_path";
 import path from "path";
 
 export const getFamixIndexFileAnchorFileName = (absolutePath: string, absolutePathProject: string) => {
@@ -21,4 +21,8 @@ export const getFamixIndexFileAnchorFileName = (absolutePath: string, absolutePa
         pathInProject = pathInProject.substring(1);
     }
     return pathInProject;
+};
+
+export const getAbsoluteFileNameFromFamixIndexFileAnchor = (famixIndexFileAnchor: string) => {
+    return `/${famixIndexFileAnchor}`;
 };
