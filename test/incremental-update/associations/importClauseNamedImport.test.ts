@@ -1,0 +1,125 @@
+import { expectRepositoriesToHaveSameStructure } from "../incrementalUpdateExpect";
+import { IncrementalUpdateProjectBuilder } from "../incrementalUpdateProjectBuilder";
+import { createExpectedFamixModelForSeveralFiles, getUpdateFileChangesMap } from "../incrementalUpdateTestHelper";
+
+const exportSourceFileName = 'exportSourceCode.ts';
+const importSourceFileName = 'importSourceCode.ts';
+const existingClassName = 'ExistingClass';
+
+describe('Add new classes to a single file', () => {
+  const sourceCodeWithExport = `
+    export class ${existingClassName} { }
+  `;
+
+  const sourceCodeWithExportChanged = `
+    class NewBaseClass { }
+    export class ${existingClassName} extends NewBaseClass { }
+  `;
+  
+    const sourceCodeWithoutImport = `    
+      class NewClass { }
+    `;
+
+  const sourceCodeWithImport = `
+    import { ${existingClassName} } from './${exportSourceFileName}';
+
+    class NewClass { }
+  `;
+
+  const sourceCodeWithImportChanged = `
+    import { ${existingClassName} } from './${exportSourceFileName}';
+
+    class NewClassChanged { }
+  `;
+
+  it('should add new import clause association', () => {
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+        .addSourceFile(exportSourceFileName, sourceCodeWithExport)
+        .addSourceFile(importSourceFileName, sourceCodeWithoutImport);
+
+    const { importer, famixRep } = testProjectBuilder.build();
+    const sourceFile = testProjectBuilder.changeSourceFile(importSourceFileName, sourceCodeWithImport);
+    // act
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+        [exportSourceFileName, sourceCodeWithExport],
+        [importSourceFileName, sourceCodeWithImport]
+    ]);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+
+  it('should remove an import clause association', () => {
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+        .addSourceFile(exportSourceFileName, sourceCodeWithExport)
+        .addSourceFile(importSourceFileName, sourceCodeWithImport);
+
+    const { importer, famixRep } = testProjectBuilder.build();
+    const sourceFile = testProjectBuilder.changeSourceFile(importSourceFileName, sourceCodeWithoutImport);
+
+    // act
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+        [exportSourceFileName, sourceCodeWithExport],
+        [importSourceFileName, sourceCodeWithoutImport]
+    ]);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+
+  it('should retain an import clause association when export file is changed', () => {
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+        .addSourceFile(exportSourceFileName, sourceCodeWithExport)
+        .addSourceFile(importSourceFileName, sourceCodeWithImport);
+
+    const { importer, famixRep } = testProjectBuilder.build();
+    const sourceFile = testProjectBuilder.changeSourceFile(exportSourceFileName, sourceCodeWithExportChanged);
+
+    // act
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+        [exportSourceFileName, sourceCodeWithExportChanged],
+        [importSourceFileName, sourceCodeWithImport]
+    ]);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+
+  it('should retain an import clause association when importing file is changed', () => {
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+        .addSourceFile(exportSourceFileName, sourceCodeWithExport)
+        .addSourceFile(importSourceFileName, sourceCodeWithImport);
+
+    const { importer, famixRep } = testProjectBuilder.build();
+    const sourceFile = testProjectBuilder.changeSourceFile(importSourceFileName, sourceCodeWithImportChanged);
+
+    // act
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+        [exportSourceFileName, sourceCodeWithExport],
+        [importSourceFileName, sourceCodeWithImportChanged]
+    ]);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+});

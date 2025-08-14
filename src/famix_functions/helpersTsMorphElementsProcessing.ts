@@ -27,6 +27,18 @@ export function getArrowFunctionClasses(f: ArrowFunction): ClassDeclaration[] {
     return classes;
 }
 
+/**
+ * Checks if the file has any imports or exports to be considered a module
+ * @param sourceFile A source file
+ * @returns A boolean indicating if the file is a module
+ */
+export function isSourceFileAModule(sourceFile: SourceFile): boolean {
+    return sourceFile.getImportDeclarations().length > 0 || 
+    sourceFile.getExportedDeclarations().size > 0 || 
+    sourceFile.getExportDeclarations().length > 0 || 
+    sourceFile.getDescendantsOfKind(SyntaxKind.ImportEqualsDeclaration).length > 0;
+}
+
 // NOTE: Finding the symbol may not work when used bare import without baseUrl
 // e.g. import { MyInterface } from "outsideInterface"; will not work if baseUrl is not set
 export function getInterfaceOrClassDeclarationFromExpression(expression: ExpressionWithTypeArguments): InterfaceDeclaration | ClassDeclaration | undefined {

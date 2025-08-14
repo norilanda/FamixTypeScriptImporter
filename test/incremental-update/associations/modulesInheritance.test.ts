@@ -1,6 +1,6 @@
 import { expectRepositoriesToHaveSameStructure } from "../incrementalUpdateExpect";
 import { IncrementalUpdateProjectBuilder } from "../incrementalUpdateProjectBuilder";
-import { createExpectedFamixModelForSeveralFiles } from "../incrementalUpdateTestHelper";
+import { createExpectedFamixModelForSeveralFiles, getUpdateFileChangesMap } from "../incrementalUpdateTestHelper";
 
 const sourceFileNameUsesSuper = 'sourceCodeUsesSuper.ts';
 const superClassName = 'SuperClass';
@@ -9,34 +9,21 @@ const sourceFileNameSuperClass = `${superClassName}.ts`;
 const sourceFileNameSubClass = `${subClassName}.ts`;
 
 const exportSuperClassCode = `
-    export class ${superClassName} {
-        protected property1: string;
-        protected method1() {}
-    }
+    export class ${superClassName} { }
 `;
 
 const subClassWithoutInheritanceCode = `
-    class ${subClassName} {
-        method2(): number {
-            return 42;
-        }
-    }
+    class ${subClassName} { }
 `;
 
 const importSubClassWithInheritanceCode = `
     import { ${superClassName} } from './${superClassName}';
-    class ${subClassName} extends ${superClassName} {
-        method2(): number {
-            return 42;
-        }
-    }
+    class ${subClassName} extends ${superClassName} { }
 `;
 
 const exportSuperClassChangedCode = `
-    export class ${superClassName} {
-        protected property1: number;
-        protected method1Changed() {}
-    }
+    class BaseSuperClass { }
+    export class ${superClassName} extends BaseSuperClass { }
 `;
 
 const fileCodeThatUsesSuperClass = `
@@ -57,7 +44,8 @@ describe('Change the inheritance between several files', () => {
     const sourceFile = testProjectBuilder.changeSourceFile(sourceFileNameSubClass, importSubClassWithInheritanceCode);
 
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
@@ -79,7 +67,8 @@ describe('Change the inheritance between several files', () => {
     const sourceFile = testProjectBuilder.changeSourceFile(sourceFileNameSubClass, subClassWithoutInheritanceCode);
 
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
@@ -102,7 +91,8 @@ describe('Change the inheritance between several files', () => {
       .changeSourceFile(sourceFileNameSuperClass, exportSuperClassChangedCode);
 
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
@@ -127,7 +117,8 @@ describe('Change the inheritance between several files', () => {
       .changeSourceFile(sourceFileNameSuperClass, exportSuperClassChangedCode);
 
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
@@ -141,20 +132,18 @@ describe('Change the inheritance between several files', () => {
 
   it('should handle a chain of the classes with inheritance when super class changed', () => {
     // arrange
-    const classACode = `export class classA {
-      private a: boolean;
-    }`;
-    const classACodeChanged = `export class classA {
-      private a: number;
-    }`;
+    const classACode = `export class classA { }`;
+    const classACodeChanged = `
+    import { SomeUndefinedClass } from './unexistingModule.ts';
+    export class classA extends SomeUndefinedClass { }`;
     const classAFileName = 'classA.ts';
 
     const classBCode = `import { classA } from './classA';
-    export class classB extends classA {}`;
+    export class classB extends classA { }`;
     const classBFileName = 'classB.ts';
 
     const classCCode = `import { classB } from './classB';
-    export class classC extends classB {}`;
+    export class classC extends classB { }`;
     const classCFileName = 'classC.ts';
 
 
@@ -169,7 +158,8 @@ describe('Change the inheritance between several files', () => {
       .changeSourceFile(classAFileName, classACodeChanged);
 
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
@@ -183,27 +173,21 @@ describe('Change the inheritance between several files', () => {
 
   it('should handle a chain of the classes with inheritance when super class changed 2 times', () => {
     // arrange
-    const classACode = `export class classA {
-      private a: boolean = true;
-    }`;
-    const classACodeChanged = `export class classA {
-      private a: number = 42;
-    }`;
-    const classACodeChangedTwice = `export class classA {
-      private a: string = 'hello';
-    }`;
+    const classACode = `export class classA { }`;
+    const classACodeChanged = `
+    import { SomeUndefinedClass } from './unexistingModule.ts';
+    export class classA extends SomeUndefinedClass { }`;
+    const classACodeChangedTwice = `
+    import { OtherUndefinedClass } from './unexistingModule.ts';
+    export class classA extends OtherUndefinedClass { }`;
     const classAFileName = 'classA.ts';
 
     const classBCode = `import { classA } from './classA';
-    export class classB extends classA {
-      private assignVariable(): void {
-        const assignedVariable = this.a;
-      }
-    }`;
+    export class classB extends classA { }`;
     const classBFileName = 'classB.ts';
 
     const classCCode = `import { classB } from './classB';
-    export class classC extends classB {}`;
+    export class classC extends classB { }`;
     const classCFileName = 'classC.ts';
 
 
@@ -218,9 +202,13 @@ describe('Change the inheritance between several files', () => {
       .changeSourceFile(classAFileName, classACodeChanged);
 
     // act
-    importer.updateFamixModelIncrementally([sourceFile]);
+    let fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+    
     testProjectBuilder.changeSourceFile(classAFileName, classACodeChangedTwice);
-    importer.updateFamixModelIncrementally([sourceFile]);
+    
+    fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
 
     // assert
     const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
