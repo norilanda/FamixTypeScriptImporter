@@ -6,7 +6,7 @@ const exportSourceFileName = 'exportSourceCode.ts';
 const importSourceFileName = 'importSourceCode.ts';
 const existingClassName = 'ExistingClass';
 
-describe('Add new classes to a single file', () => {
+describe('Change import clause between 2 files', () => {
   const sourceCodeWithExport = `
     export class ${existingClassName} { }
   `;
