@@ -153,28 +153,28 @@ describe('5-file named import re-export chain test', () => {
   const reexport3FileName = 'reexport3.ts';
   const finalImportFileName = 'finalImport.ts';
   
+  const originalExportCode = `
+    export interface Interface1 {}
+  `;
+
+  const reexport1Code = `
+    export { Interface1 } from './${originalExportFileName}';
+  `;
+
+  const reexport2Code = `
+    export { Interface1 } from './${reexport1FileName}';
+  `;
+
+  const reexport3Code = `
+    export { Interface1 } from './${reexport2FileName}';
+  `;
+
+  const finalImportCode = `
+    import { Interface1 } from './${reexport3FileName}';
+
+    class Consumer implements Interface1 { }
+  `;
   it('should handle changes in the middle of a 5-file re-export chain', () => {
-    const originalExportCode = `
-      export interface Interface1 {}
-    `;
-
-    const reexport1Code = `
-      export { Interface1 } from './${originalExportFileName}';
-    `;
-
-    const reexport2Code = `
-      export { Interface1 } from './${reexport1FileName}';
-    `;
-
-    const reexport3Code = `
-      export { Interface1 } from './${reexport2FileName}';
-    `;
-
-    const finalImportCode = `
-      import { Interface1 } from './${reexport3FileName}';
-
-      class Consumer implements Interface1 { }
-    `;
 
     // arrange
     const testProjectBuilder = new IncrementalUpdateProjectBuilder();
@@ -205,28 +205,6 @@ describe('5-file named import re-export chain test', () => {
   });
 
   it('should handle changes in the middle of a 5-file re-export chain', () => {
-    const originalExportCode = `
-      export interface Interface1 {}
-    `;
-
-    const reexport1Code = `
-      export { Interface1 } from './${originalExportFileName}';
-    `;
-
-    const reexport2Code = `
-      export { Interface1 } from './${reexport1FileName}';
-    `;
-
-    const reexport3Code = `
-      export { Interface1 } from './${reexport2FileName}';
-    `;
-
-    const finalImportCode = `
-      import { Interface1 } from './${reexport3FileName}';
-
-      class Consumer implements Interface1 { }
-    `;
-
     // arrange
     const testProjectBuilder = new IncrementalUpdateProjectBuilder();
     testProjectBuilder
@@ -354,6 +332,238 @@ describe('Default named import re-export functionality', () => {
         [reexport1FileName, reexport1Code],
         [reexport2FileName, reexport2Code],
         [finalImportFileName, finalImportCode]
+    ]);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+});
+
+describe('Namespace import re-export with inheritance changes', () => {
+  const exportSourceFileName = 'exportSource.ts';
+  const reexportSourceFileName = 'reexportSource.ts';
+  const importSourceFileName = 'importSource.ts';
+  const existingClassName = 'ExistingClass';
+  
+  const initialExportCode = `
+    export class ${existingClassName} { }
+  `;
+
+  const exportCodeWithInheritance = `
+    class BaseClass { }
+    
+    export class ${existingClassName} extends BaseClass { }
+  `;
+
+  const reexportCode = `
+    export * from './${exportSourceFileName}';
+  `;
+
+  const importCode = `
+    import * as base from './${reexportSourceFileName}';
+
+    class ConsumerClass extends base.${existingClassName} { }
+  `;
+
+  it('should maintain re-export associations when original export adds inheritance', () => {
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+        .addSourceFile(exportSourceFileName, initialExportCode)
+        .addSourceFile(reexportSourceFileName, reexportCode)
+        .addSourceFile(importSourceFileName, importCode);
+
+    const { importer, famixRep } = testProjectBuilder.build();
+    
+    // act - change the original export file to add inheritance
+    const sourceFile = testProjectBuilder.changeSourceFile(exportSourceFileName, exportCodeWithInheritance);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+        [exportSourceFileName, exportCodeWithInheritance],
+        [reexportSourceFileName, reexportCode],
+        [importSourceFileName, importCode]
+    ]);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+
+  it('should establish correct re-export chain from scratch', () => {
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+        .addSourceFile(exportSourceFileName, initialExportCode)
+        .addSourceFile(reexportSourceFileName, '')
+        .addSourceFile(importSourceFileName, '');
+
+    const { importer, famixRep } = testProjectBuilder.build();
+    
+    // act - add re-export
+    let sourceFile = testProjectBuilder.changeSourceFile(reexportSourceFileName, reexportCode);
+    let fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // act - add import from re-export
+    sourceFile = testProjectBuilder.changeSourceFile(importSourceFileName, importCode);
+    fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+        [exportSourceFileName, initialExportCode],
+        [reexportSourceFileName, reexportCode],
+        [importSourceFileName, importCode]
+    ]);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+
+  it('should handle removing re-export while maintaining original export', () => {
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+        .addSourceFile(exportSourceFileName, initialExportCode)
+        .addSourceFile(reexportSourceFileName, reexportCode)
+        .addSourceFile(importSourceFileName, importCode);
+
+    const { importer, famixRep } = testProjectBuilder.build();
+    
+    // act - remove re-export
+    const sourceFile = testProjectBuilder.changeSourceFile(reexportSourceFileName, '');
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+      [exportSourceFileName, initialExportCode],
+      [reexportSourceFileName, ''],
+      [importSourceFileName, importCode]
+    ]);
+    
+    // assert
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+
+  it('should update re-export associations when import file changes to use original export', () => {
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+        .addSourceFile(exportSourceFileName, initialExportCode)
+        .addSourceFile(reexportSourceFileName, reexportCode)
+        .addSourceFile(importSourceFileName, importCode);
+
+    const { importer, famixRep } = testProjectBuilder.build();
+    
+    // act - change import to use original export instead of re-export
+    const directImportCode = `
+      import { ${existingClassName} } from './${exportSourceFileName}';
+
+      class ConsumerClass {
+        private instance: ${existingClassName};
+
+        constructor() {
+          this.instance = new ${existingClassName}();
+        }
+      }
+    `;
+    
+    const sourceFile = testProjectBuilder.changeSourceFile(importSourceFileName, directImportCode);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+        [exportSourceFileName, initialExportCode],
+        [reexportSourceFileName, reexportCode],
+        [importSourceFileName, directImportCode]
+    ]);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+});
+
+describe('5-file namespace import re-export chain test', () => {
+  const originalExportFileName = 'originalExport.ts';
+  const reexport1FileName = 'reexport1.ts';
+  const reexport2FileName = 'reexport2.ts';
+  const reexport3FileName = 'reexport3.ts';
+  const finalImportFileName = 'finalImport.ts';
+  
+  const originalExportCode = `
+    export interface Interface1 {}
+  `;
+
+  const reexport1Code = `
+    export * from './${originalExportFileName}';
+  `;
+
+  const reexport2Code = `
+    export * from './${reexport1FileName}';
+  `;
+
+  const reexport3Code = `
+    export * from './${reexport2FileName}';
+  `;
+
+  const finalImportCode = `
+    import * as x from './${reexport3FileName}';
+
+    class Consumer implements x.Interface1 { }
+  `;
+  it('should handle changes in the middle of a 5-file re-export chain', () => {
+
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+      .addSourceFile(originalExportFileName, originalExportCode)
+      .addSourceFile(reexport1FileName, reexport1Code)
+      .addSourceFile(reexport2FileName, reexport2Code)
+      .addSourceFile(reexport3FileName, reexport3Code)
+      .addSourceFile(finalImportFileName, finalImportCode);
+
+    const { importer, famixRep } = testProjectBuilder.build();
+
+    // act - modify the middle file to add an additional class export
+    const sourceFile = testProjectBuilder.changeSourceFile(reexport1FileName, '');
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+      [originalExportFileName, originalExportCode],
+      [reexport1FileName, ''],
+      [reexport2FileName, reexport2Code],
+      [reexport3FileName, reexport3Code],
+      [finalImportFileName, finalImportCode]
+    ]);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+
+  it('should handle changes in the middle of a 5-file re-export chain', () => {
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+      .addSourceFile(originalExportFileName, originalExportCode)
+      .addSourceFile(reexport1FileName, '')
+      .addSourceFile(reexport2FileName, reexport2Code)
+      .addSourceFile(reexport3FileName, reexport3Code)
+      .addSourceFile(finalImportFileName, finalImportCode);
+
+    const { importer, famixRep } = testProjectBuilder.build();
+
+    // act - modify the middle file to add an additional class export
+    const sourceFile = testProjectBuilder.changeSourceFile(reexport1FileName, reexport1Code);
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+      [originalExportFileName, originalExportCode],
+      [reexport1FileName, reexport1Code],
+      [reexport2FileName, reexport2Code],
+      [reexport3FileName, reexport3Code],
+      [finalImportFileName, finalImportCode]
     ]);
 
     expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
