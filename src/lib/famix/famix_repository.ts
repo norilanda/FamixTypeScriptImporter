@@ -111,6 +111,13 @@ export class FamixRepository {
         }
     }
 
+    public getImportClauses(): Famix.ImportClause[] {
+        return Array.from(this.elements.values()).filter(e => e instanceof Famix.ImportClause) as Famix.ImportClause[];
+    }
+
+    public getInheritances(): Famix.Inheritance[] {
+        return Array.from(this.elements.values()).filter(e => e instanceof Famix.Inheritance) as Famix.Inheritance[];
+    }
 
     // Only for tests
 

@@ -323,7 +323,7 @@ export class EntityDictionary {
         );
     }
 
-    private ensureFamixElement<
+    public ensureFamixElement<
         TTMorphNode extends Node, 
         TFamixElement extends Famix.SourcedEntity>(
             node: TTMorphNode, 
@@ -1355,73 +1355,6 @@ export class EntityDictionary {
             this.makeFamixIndexFileAnchor(unresolvedInheritedInterface, stub);
             return stub;
         }
-    }
-
-    public ensureFamixImportClauseForNamedImport(
-        importDeclaration: ImportDeclaration, 
-        namedImport: ImportSpecifier, 
-        importingSourceFile: SourceFile
-    ) {
-        const ensureImportedEntity = () => {
-            let importedEntity: Famix.NamedEntity | undefined;
-    
-            const symbol = namedImport.getSymbol();
-            const aliasedSymbol = symbol?.getAliasedSymbol();
-            const namedEntityDeclaration = aliasedSymbol?.getValueDeclaration();
-    
-            if (namedEntityDeclaration) {
-                const importedFullyQualifiedName = FQNFunctions.getFQN(namedEntityDeclaration, this.getAbsolutePath());
-                importedEntity = this.famixRep.getFamixEntityByFullyQualifiedName<Famix.NamedEntity>(importedFullyQualifiedName);
-            }
-            if (!importedEntity) {
-                // creating a stub
-                // TODO: check how do we create the FQN for the import specifier
-                importedEntity = this.ensureFamixElement<ImportSpecifier, Famix.NamedEntity>(namedImport, () => {
-                    importedEntity = new Famix.NamedEntity();
-                    // TODO: add other properties
-                    return importedEntity;
-                });
-            }
-            return importedEntity;
-        };
-
-        const ensureImportingEntity = () => {
-            const importingFullyQualifiedName = FQNFunctions.getFQN(importingSourceFile, this.getAbsolutePath());
-            const importingEntity = this.famixRep.getFamixEntityByFullyQualifiedName<Famix.Module>(importingFullyQualifiedName);
-            if (!importingEntity) {
-                throw new Error(`Famix importer with FQN ${importingFullyQualifiedName} not found.`);
-            }
-            return importingEntity;
-        };
-
-        const importedEntity = ensureImportedEntity();
-        const importingEntity = ensureImportingEntity();
-        this.ensureFamixImportClause(importedEntity, importingEntity, importDeclaration);
-    }
-
-    private ensureFamixImportClause(importedEntity: Famix.NamedEntity, importingEntity: Famix.Module, importDeclaration: ImportDeclaration) {
-        const fmxImportClause = new Famix.ImportClause();
-        fmxImportClause.importedEntity = importedEntity;
-        fmxImportClause.importingEntity = importingEntity;
-        fmxImportClause.moduleSpecifier = importDeclaration?.getModuleSpecifierValue();
-
-        const existingFmxImportClause = this.famixRep.getFamixEntityByFullyQualifiedName<Famix.ImportClause>(fmxImportClause.fullyQualifiedName);
-        if (!existingFmxImportClause) {
-            this.makeFamixIndexFileAnchor(importDeclaration, fmxImportClause);
-            this.famixRep.addElement(fmxImportClause);
-        }
-    }
-
-    public ensureFamixImportClauseForDefaultImport(defaultImport: Identifier) {
-        throw new Error("Not implemented");
-    }
-
-    public ensureFamixImportClauseForNamespaceImport(namespaceImport: Identifier) {
-        throw new Error("Not implemented");
-    }
-
-    public ensureFamixImportClauseForImportEqualsDeclaration(importEqualsDeclaration: ImportEqualsDeclaration) {
-        throw new Error("Not implemented");
     }
 
     /**

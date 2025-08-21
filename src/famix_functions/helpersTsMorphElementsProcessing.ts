@@ -1,4 +1,5 @@
-import { ArrowFunction, ClassDeclaration, ExpressionWithTypeArguments, ImportSpecifier, InterfaceDeclaration, ModuleDeclaration, Node, SourceFile, SyntaxKind } from "ts-morph";
+import { ArrowFunction, ClassDeclaration, ExportSpecifier, ExpressionWithTypeArguments, ImportSpecifier, 
+    InterfaceDeclaration, ModuleDeclaration, Node, SourceFile, SyntaxKind, ts } from "ts-morph";
 import { Symbol as TSMorphSymbol } from "ts-morph";
 
 /**
@@ -102,3 +103,23 @@ function resolveSymbolToInterfaceOrClassDeclaration(symbol: TSMorphSymbol): Inte
     }
     return undefined;
 }
+
+export const getDeclarationFromImportOrExport = (importOrExport: ImportSpecifier | ExportSpecifier): Node<ts.Node> | undefined => {
+    const symbol = importOrExport.getSymbol();
+    const aliasedSymbol = symbol?.getAliasedSymbol();
+
+    return getDeclarationFromSymbol(aliasedSymbol);
+};
+
+export const getDeclarationFromSymbol = (symbol: TSMorphSymbol | undefined) => {
+    let entityDeclaration = symbol?.getValueDeclaration();
+
+    if (!entityDeclaration) {
+        const declarations = symbol?.getDeclarations();
+        if (declarations && declarations?.length > 0) {
+            entityDeclaration = declarations[0];
+        }
+    }
+
+    return entityDeclaration;
+};

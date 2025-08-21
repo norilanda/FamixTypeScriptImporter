@@ -7,6 +7,7 @@ import { getFQN } from "../fqn";
 import { EntityDictionary, InvocableType } from "../famix_functions/EntityDictionary";
 import { SourceFileDataMap, SourceFileDataSet } from "../famix_functions/SourceFileData";
 import { getClassesDeclaredInArrowFunctions } from "../famix_functions/helpersTsMorphElementsProcessing";
+import { ImportClauseCreator } from "../famix_functions/ImportClauseCreator";
 
 export type AccessibleTSMorphElement = ParameterDeclaration | VariableDeclaration | PropertyDeclaration | EnumMember;
 export type FamixID = number;
@@ -17,6 +18,7 @@ type ScopedTypes = Famix.ScriptEntity | Famix.Module | Famix.Function | Famix.Me
 
 export class TypeScriptToFamixProcessor  {
     private entityDictionary: EntityDictionary;
+    private importClauseCreator: ImportClauseCreator;
 
     // TODO: get rid of these maps
     public methodsAndFunctionsWithId = new SourceFileDataMap<number, InvocableType>(); // Maps the Famix method, constructor, getter, setter and function ids to their ts-morph method, constructor, getter, setter or function object
@@ -27,6 +29,7 @@ export class TypeScriptToFamixProcessor  {
 
     constructor(entityDictionary: EntityDictionary) {
         this.entityDictionary = entityDictionary;
+        this.importClauseCreator = new ImportClauseCreator(entityDictionary);
         this.currentCC = {};
     }
 
@@ -792,7 +795,7 @@ export class TypeScriptToFamixProcessor  {
             sourceFile.forEachDescendant(node => {
                 if (Node.isImportEqualsDeclaration(node)) {
                     // TODO: implement getting all the imports with require (look up to tests for all the cases)
-                    this.entityDictionary.ensureFamixImportClauseForImportEqualsDeclaration(node);
+                    this.importClauseCreator.ensureFamixImportClauseForImportEqualsDeclaration(node);
                 }
             });
         });
@@ -804,29 +807,44 @@ export class TypeScriptToFamixProcessor  {
      */
     public processImportClausesForModules(modules: Array<SourceFile>): void {
         logger.info(`Creating import clauses from ${modules.length} modules:`);
-        // TODO: how to handle the reexport?
         modules.forEach(module => {
+            const exportDeclarations = module.getExportDeclarations();
+            const reExports = Array.from(exportDeclarations.entries())
+                .flatMap(([, declarations]) => declarations)
+                .filter(declaration => declaration.hasModuleSpecifier());
+
+            reExports.forEach(reExport => {                
+                const namedExports = reExport.getNamedExports();
+                namedExports.forEach(namedExport => {
+                    this.importClauseCreator.ensureFamixImportClauseForNamedImport(
+                        reExport, namedExport, module,
+                    );
+                });
+
+                if (reExport.isNamespaceExport()) {
+                    this.importClauseCreator.ensureFamixImportClauseForNamespaceExports(reExport, module);
+                }
+            });
 
             module.getImportDeclarations().forEach(impDecl => {
                 impDecl.getNamedImports().forEach(namedImport => {
-                    this.entityDictionary.ensureFamixImportClauseForNamedImport(
-                        impDecl,
-                        namedImport,
-                        module,
+                    this.importClauseCreator.ensureFamixImportClauseForNamedImport(
+                        impDecl, namedImport, module,
                     );
                 });
 
                 const defaultImport = impDecl.getDefaultImport();
                 if (defaultImport !== undefined) {
-                    this.entityDictionary.ensureFamixImportClauseForDefaultImport(
+                    this.importClauseCreator.ensureFamixImportClauseForDefaultImport(
                         defaultImport,
                     );
                 }
     
                 const namespaceImport = impDecl.getNamespaceImport();
                 if (namespaceImport !== undefined) {
-                    this.entityDictionary.ensureFamixImportClauseForNamespaceImport(
+                    this.importClauseCreator.ensureFamixImportClauseForNamespaceImport(
                         namespaceImport,
+                        module
                     );
                 }
             });

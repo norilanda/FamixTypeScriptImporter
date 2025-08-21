@@ -5,7 +5,7 @@ import { Logger } from "tslog";
 import { EntityDictionary, EntityDictionaryConfig } from "./famix_functions/EntityDictionary";
 import path from "path";
 import { TypeScriptToFamixProcessor  } from "./analyze_functions/process_functions";
-import { getFamixIndexFileAnchorFileName } from "./helpers";
+import { getFamixIndexFileAnchorFileName, getTransientDependentEntities } from "./helpers";
 import { isSourceFileAModule } from "./famix_functions/helpersTsMorphElementsProcessing";
 import { FamixBaseElement } from "./lib/famix/famix_base_element";
 import { getDependentAssociations, getSourceFilesToUpdate, removeDependentAssociations } from "./helpers";
@@ -142,10 +142,13 @@ export class Importer {
 
         const allSourceFiles = this.project.getSourceFiles();
         const dependentAssociations = getDependentAssociations(removedEntities);
+        const transientDependentAssociations = getTransientDependentEntities(this.entityDictionary, sourceFileChangeMap);
 
-        removeDependentAssociations(this.entityDictionary.famixRep, dependentAssociations);
+        const associationsToRemove = [...dependentAssociations, ...transientDependentAssociations];
 
-        const sourceFilesToEnsure = getSourceFilesToUpdate(dependentAssociations, sourceFileChangeMap, allSourceFiles);
+        removeDependentAssociations(this.entityDictionary.famixRep, associationsToRemove);
+
+        const sourceFilesToEnsure = getSourceFilesToUpdate(associationsToRemove, sourceFileChangeMap, allSourceFiles);
 
         this.processFunctions.processFiles(sourceFilesToEnsure);
         const sourceFilesToDelete = sourceFileChangeMap.get(SourceFileChangeType.Delete) || [];

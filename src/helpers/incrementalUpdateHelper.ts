@@ -4,8 +4,10 @@ import { ImportClause, IndexedFileAnchor, Inheritance, Interface, NamedEntity } 
 import { EntityWithSourceAnchor } from '../lib/famix/model/famix/sourced_entity';
 import { SourceFileChangeType } from '../analyze';
 import { SourceFile } from 'ts-morph';
-import { getAbsoluteFileNameFromFamixIndexFileAnchor } from './famixIndexFileAnchorHelper';
+import { getAbsoluteFileNameFromFamixIndexFileAnchor, getFamixIndexFileAnchorFileName } from './famixIndexFileAnchorHelper';
 import { FamixRepository } from '../lib/famix/famix_repository';
+import { EntityDictionary } from 'src/famix_functions/EntityDictionary';
+import { getTransientDependentAssociations } from './transientDependencyResolverHelper';
 
 export const getSourceFilesToUpdate = (
     dependentAssociations: EntityWithSourceAnchor[],
@@ -52,6 +54,21 @@ export const getDependentAssociations = (entities: FamixBaseElement[]) => {
     return dependentAssociations;
 };
 
+export const getTransientDependentEntities = (
+    entityDictionary: EntityDictionary, 
+    sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>,
+) => {
+    const absoluteProjectPath = entityDictionary.getAbsolutePath();
+
+    const changedFilesNames = Array.from(sourceFileChangeMap.values())
+        .flat()
+        .map(sourceFile => getFamixIndexFileAnchorFileName(sourceFile.getFilePath(), absoluteProjectPath));
+
+    const transientDependentAssociations = getTransientDependentAssociations(entityDictionary, changedFilesNames);
+
+    return transientDependentAssociations;
+};
+
 const getDependentAssociationsForEntity = (entity: FamixBaseElement) => {
     const dependentAssociations: EntityWithSourceAnchor[] = [];
 
@@ -88,9 +105,11 @@ export const removeDependentAssociations = (
 
     dependentAssociations.forEach(association => {
         if (association instanceof Inheritance) {
+            association.superclass.removeSubInheritance(association);
             association.subclass.removeSuperInheritance(association);
         } else if (association instanceof ImportClause) {
-            association.importingEntity.incomingImports.delete(association);
+            association.importedEntity.incomingImports.delete(association);
+            association.importingEntity.outgoingImports.delete(association);
         }
     });
 };
