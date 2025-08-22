@@ -110,8 +110,16 @@ export class ImportClauseCreator {
     }    
 
     private getModuleSpecifierFromDeclaration(importOrExportDeclaration: ImportDeclaration | ExportDeclaration): string {
+        let moduleSpecifierFileName = importOrExportDeclaration.getModuleSpecifierValue();
+        // TODO: test this path finding with node modules, declaration files, etc.
+        // It is important that this name can be used later for finding the file name which is used for the source anchor
+        if (moduleSpecifierFileName && !moduleSpecifierFileName.endsWith('.ts')) {
+            moduleSpecifierFileName = moduleSpecifierFileName + '.ts';
+        }
+        //-------------------------------
+
         return getFamixIndexFileAnchorFileName(
-            importOrExportDeclaration.getModuleSpecifierValue() ?? '',
+            moduleSpecifierFileName ?? '',
             this.entityDictionary.getAbsolutePath()
         );
     }

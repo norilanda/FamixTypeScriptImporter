@@ -7,7 +7,8 @@ const namedEntityCompareFunction = (actual: FamixBaseElement, expected: FamixBas
     const expectedAsNamedEntity = expected as NamedEntity;
 
     return actualAsNamedEntity.fullyQualifiedName === expectedAsNamedEntity.fullyQualifiedName &&
-        actualAsNamedEntity.incomingImports.size === expectedAsNamedEntity.incomingImports.size;
+        actualAsNamedEntity.incomingImports.size === expectedAsNamedEntity.incomingImports.size &&
+        actualAsNamedEntity.isStub === expectedAsNamedEntity.isStub;
 };
 
 const classCompareFunction = (actual: FamixBaseElement, expected: FamixBaseElement) => {
@@ -79,7 +80,7 @@ export const expectRepositoriesToHaveSameStructure = (actual: FamixRepository, e
     expectElementsToBeEqualSize(actual, expected, "Function");
     expectElementsToBeEqualSize(actual, expected, "ImportClause");
     expectElementsToBeSame(actual, expected, "ImportClause", importClauseCompareFunction);
-    // expectElementsToBeEqualSize(actual, expected, "IndexedFileAnchor");
+    expectElementsToBeEqualSize(actual, expected, "IndexedFileAnchor");
     expectElementsToBeEqualSize(actual, expected, "Inheritance");
     expectElementsToBeSame(actual, expected, "Inheritance", inheritanceCompareFunction);
     expectElementsToBeEqualSize(actual, expected, "Interface");
@@ -110,7 +111,7 @@ export const expectRepositoriesToHaveSameStructure = (actual: FamixRepository, e
     expectElementsToBeEqualSize(actual, expected, "Type");
     expectElementsToBeEqualSize(actual, expected, "Variable");
 
-    // expect(actual._getAllEntities().size).toEqual(expected._getAllEntities().size);
+    expect(actual._getAllEntities().size).toEqual(expected._getAllEntities().size);
 };
 
 const expectElementsToBeEqualSize = (actual: FamixRepository, expected: FamixRepository, type: string) => {

@@ -9,7 +9,7 @@ import { FamixRepository } from '../lib/famix/famix_repository';
 import { EntityDictionary } from 'src/famix_functions/EntityDictionary';
 import { getTransientDependentAssociations } from './transientDependencyResolverHelper';
 
-
+// TODO: add tests for these methods
 export const getSourceFilesToUpdate = (
     dependentAssociations: EntityWithSourceAnchor[],
     sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>,

@@ -2,6 +2,7 @@ import { EntityWithSourceAnchor } from "../lib/famix/model/famix/sourced_entity"
 import { EntityDictionary } from "../famix_functions/EntityDictionary";
 import { Class, ImportClause, IndexedFileAnchor, Interface } from "../lib/famix/model/famix";
 
+// TODO: add tests for these methods
 export const getTransientDependentAssociations = (
     entityDictionary: EntityDictionary,
     changedFilesNames: string []
