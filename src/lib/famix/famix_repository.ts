@@ -112,6 +112,7 @@ export class FamixRepository {
         }
     }
 
+    // NOTE: consider storing all the associations (ImportClause, Inheritance, ...) if we need a better performance
     public getImportClauses(): Famix.ImportClause[] {
         return Array.from(this.elements.values()).filter(e => e instanceof Famix.ImportClause) as Famix.ImportClause[];
     }
