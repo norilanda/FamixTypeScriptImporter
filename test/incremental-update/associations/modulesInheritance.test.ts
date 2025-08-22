@@ -219,4 +219,53 @@ describe('Change the inheritance between several files', () => {
 
     expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
   });
+
+  it('should handle a chain of the interfaces with inheritance when super class changed 2 times', () => {
+    // arrange
+    const codeA = `export interface A { }`;
+    const codeAChanged = `
+    import { SomeUndefined } from './unexistingModule.ts';
+    export interface A extends SomeUndefined { }`;
+    const codeAChangedTwice = `
+    import { OtherUndefined } from './unexistingModule.ts';
+    export interface A extends OtherUndefined { }`;
+    const codeAFileName = 'codeA.ts';
+
+    const codeB = `import { A } from './codeA';
+    export interface B extends A { }`;
+    const codeBFileName = 'codeB.ts';
+
+    const codeC = `import { B } from './codeB';
+    export interface C extends B { }`;
+    const codeCFileName = 'codeC.ts';
+
+
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+      .addSourceFile(codeAFileName, codeA)
+      .addSourceFile(codeBFileName, codeB)
+      .addSourceFile(codeCFileName, codeC);
+    const { importer, famixRep } = testProjectBuilder.build();
+
+    const sourceFile = testProjectBuilder
+      .changeSourceFile(codeAFileName, codeAChanged);
+
+    // act
+    let fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+    
+    testProjectBuilder.changeSourceFile(codeAFileName, codeAChangedTwice);
+    
+    fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+        [codeAFileName, codeAChangedTwice],
+        [codeBFileName, codeB],
+        [codeCFileName, codeC]
+    ]);
+
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
 });
