@@ -4,6 +4,7 @@ import * as Famix from "./model/famix";
 import { TSMorphObjectType } from "../../famix_functions/EntityDictionary";
 import { logger } from "../../analyze";
 import { EntityWithSourceAnchor } from "./model/famix/sourced_entity";
+import { FullyQualifiedNameEntity } from "./model/interfaces/fully_qualified_name_entity";
 
 /**
  * This class is used to store all Famix elements
@@ -41,7 +42,7 @@ export class FamixRepository {
      * @returns The Famix entity corresponding to the fully qualified name or undefined if it doesn't exist
      */
     public getFamixEntityByFullyQualifiedName<T extends FamixBaseElement>(fullyQualifiedName: string): T | undefined {
-        const allEntities = Array.from(this.elements.values()).filter(e => e instanceof NamedEntity) as Array<NamedEntity>;
+        const allEntities = Array.from(this.elements.values()).filter(e => (e as NamedEntity).fullyQualifiedName) as Array<NamedEntity>;
         const entity = allEntities.find(e => 
             // {console.log(`namedEntity: ${e.fullyQualifiedName}`); 
             // return 

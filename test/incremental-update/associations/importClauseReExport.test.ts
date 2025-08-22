@@ -480,6 +480,31 @@ describe('Namespace import re-export with inheritance changes', () => {
 
     expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
   });
+
+  it('should handle removing original export', () => {
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder
+        .addSourceFile(exportSourceFileName, initialExportCode)
+        .addSourceFile(reexportSourceFileName, reexportCode)
+        .addSourceFile(importSourceFileName, importCode);
+
+    const { importer, famixRep } = testProjectBuilder.build();
+    
+    // act - remove re-export
+    const sourceFile = testProjectBuilder.changeSourceFile(exportSourceFileName, '');
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    const expectedFamixRepo = createExpectedFamixModelForSeveralFiles([
+      [exportSourceFileName, ''],
+      [reexportSourceFileName, reexportCode],
+      [importSourceFileName, importCode]
+    ]);
+    
+    // assert
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
 });
 
 describe('5-file namespace import re-export chain test', () => {
