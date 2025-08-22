@@ -2,6 +2,8 @@ import { Importer, logger } from '../src/analyze';
 import { Module } from '../src/lib/famix/model/famix/module';
 import { project } from './testUtils';
 
+// TODO: implement the default import and check if this test is still correct and up to date
+
 const importer = new Importer();
 
 project.createSourceFile("/test_src/moduleBecauseExports.ts", `
