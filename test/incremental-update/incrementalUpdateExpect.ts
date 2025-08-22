@@ -1,4 +1,4 @@
-import { FamixBaseElement, ImportClause, Inheritance, Module, NamedEntity } from "../../src";
+import { FamixBaseElement, ImportClause, Inheritance, Module, NamedEntity, ScriptEntity } from "../../src";
 import { FamixRepository } from "../../src";
 import { Class, PrimitiveType } from "../../src";
 
@@ -51,13 +51,20 @@ const moduleCompareFunction = (actual: FamixBaseElement, expected: FamixBaseElem
     const actualAsModule = actual as Module;
     const expectedAsModule = expected as Module;
 
-    return namedEntityCompareFunction(actualAsModule, expectedAsModule) &&
+    return scriptEntityCompareFunction(actualAsModule, expectedAsModule) &&
         actualAsModule.isAmbient === expectedAsModule.isAmbient &&
         actualAsModule.isNamespace === expectedAsModule.isNamespace &&
         actualAsModule.isModule === expectedAsModule.isModule &&
-        // TODO: do we use the module correctly (inside the createFamixFile method?)
-        actualAsModule.parentScope?.fullyQualifiedName === expectedAsModule.parentScope?.fullyQualifiedName &&
-        actualAsModule.incomingImports.size === expectedAsModule.incomingImports.size;
+        actualAsModule.parentScope?.fullyQualifiedName === expectedAsModule.parentScope?.fullyQualifiedName;
+};
+
+const scriptEntityCompareFunction = (actual: FamixBaseElement, expected: FamixBaseElement) => {
+    const actualAsScriptEntity = actual as ScriptEntity;
+    const expectedAsScriptEntity = expected as ScriptEntity;
+
+    return namedEntityCompareFunction(actualAsScriptEntity, expectedAsScriptEntity) &&
+        actualAsScriptEntity.numberOfLinesOfText === expectedAsScriptEntity.numberOfLinesOfText &&
+        actualAsScriptEntity.numberOfCharacters === expectedAsScriptEntity.numberOfCharacters;
 };
 
 export const expectRepositoriesToHaveSameStructure = (actual: FamixRepository, expected: FamixRepository) => {
@@ -104,6 +111,7 @@ export const expectRepositoriesToHaveSameStructure = (actual: FamixRepository, e
     expectElementsToBeEqualSize(actual, expected, "Reference");
     expectElementsToBeEqualSize(actual, expected, "ScopingEntity");
     expectElementsToBeEqualSize(actual, expected, "ScriptEntity");
+    expectElementsToBeSame(actual, expected, "ScriptEntity", scriptEntityCompareFunction);
     expectElementsToBeEqualSize(actual, expected, "SourceAnchor");
     expectElementsToBeEqualSize(actual, expected, "SourceLanguage");
     expectElementsToBeEqualSize(actual, expected, "SourcedEntity");

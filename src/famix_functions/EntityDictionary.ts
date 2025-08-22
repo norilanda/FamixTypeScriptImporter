@@ -215,16 +215,17 @@ export class EntityDictionary {
      * @param isModule A boolean indicating if the source file is a module
      * @returns The Famix model of the source file
      */
-    public createOrGetFamixFile(f: SourceFile): Famix.ScriptEntity | Famix.Module {
+    public ensureFamixFile(f: SourceFile): Famix.ScriptEntity | Famix.Module {
         const mapToFamixElement = (f: SourceFile) => {
-            let fmxFile: Famix.ScriptEntity; // | Famix.Module;
+            let fmxFile: Famix.ScriptEntity | Famix.Module;
 
             const fileName = f.getBaseName();
             const isModule = isSourceFileAModule(f);
-            // TODO: do we need to create a module here instead of ScriptEntity?
-            // If so - we need to add other properties to the module
             if (isModule) {
                 fmxFile = new Famix.Module();
+                (fmxFile as Famix.Module).isAmbient = false;
+                (fmxFile as Famix.Module).isNamespace = false;
+                (fmxFile as Famix.Module).isModule = true;
             }
             else {
                 fmxFile = new Famix.ScriptEntity();
@@ -245,7 +246,7 @@ export class EntityDictionary {
      * @param moduleDeclaration A module
      * @returns The Famix model of the module
      */
-    public createOrGetFamixModule(moduleDeclaration: ModuleDeclaration): Famix.Module {
+    public ensureFamixModule(moduleDeclaration: ModuleDeclaration): Famix.Module {
         const mapToFamixElement = (moduleDeclaration: ModuleDeclaration) => {
             const fmxModule = new Famix.Module();
             const moduleName = moduleDeclaration.getName();

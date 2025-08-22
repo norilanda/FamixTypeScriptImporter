@@ -73,7 +73,7 @@ export class TypeScriptToFamixProcessor  {
      * @param f A source file
      */
     private processFile(f: SourceFile): void {        
-        const fmxFile = this.entityDictionary.createOrGetFamixFile(f);
+        const fmxFile = this.entityDictionary.ensureFamixFile(f);
         logger.debug(`processFile: file: ${f.getBaseName()}, fqn = ${fmxFile.fullyQualifiedName}`);
     
         this.processComments(f, fmxFile);
@@ -92,7 +92,7 @@ export class TypeScriptToFamixProcessor  {
      * @returns A Famix.Module representing the module
      */
     private processModule(m: ModuleDeclaration): Famix.Module {
-        const fmxModule = this.entityDictionary.createOrGetFamixModule(m);
+        const fmxModule = this.entityDictionary.ensureFamixModule(m);
     
         logger.debug(`module: ${m.getName()}, (${m.getType().getText()}), ${fmxModule.fullyQualifiedName}`);
     
