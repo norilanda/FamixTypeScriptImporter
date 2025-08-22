@@ -4,15 +4,17 @@ import { ImportClause, IndexedFileAnchor, Inheritance, Interface, NamedEntity } 
 import { EntityWithSourceAnchor } from '../lib/famix/model/famix/sourced_entity';
 import { SourceFileChangeType } from '../analyze';
 import { SourceFile } from 'ts-morph';
-import { getAbsoluteFileNameFromFamixIndexFileAnchor, getFamixIndexFileAnchorFileName } from './famixIndexFileAnchorHelper';
+import { getFamixIndexFileAnchorFileName } from './famixIndexFileAnchorHelper';
 import { FamixRepository } from '../lib/famix/famix_repository';
 import { EntityDictionary } from 'src/famix_functions/EntityDictionary';
 import { getTransientDependentAssociations } from './transientDependencyResolverHelper';
 
+
 export const getSourceFilesToUpdate = (
     dependentAssociations: EntityWithSourceAnchor[],
     sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>,
-    allSourceFiles: SourceFile[]
+    allSourceFiles: SourceFile[],
+    projectBaseUrl: string
 ) => {
     const sourceFilesToEnsureEntities = [
         ...(sourceFileChangeMap.get(SourceFileChangeType.Create) || []),
@@ -21,13 +23,16 @@ export const getSourceFilesToUpdate = (
 
     const dependentFileNames = getDependentSourceFileNames(dependentAssociations);
     const dependentFileNamesToAdd = Array.from(dependentFileNames)
-        .map(fileName => getAbsoluteFileNameFromFamixIndexFileAnchor(fileName))
+        .map(fileName => getFamixIndexFileAnchorFileName(fileName, projectBaseUrl))
         .filter(
             fileName => !Array.from(sourceFileChangeMap.values())
             .flat().some(sourceFile => sourceFile.getFilePath() === fileName));
 
     const dependentFiles = allSourceFiles.filter(
-        sourceFile => dependentFileNamesToAdd.includes(sourceFile.getFilePath())
+        sourceFile => {
+            const filePath = getFamixIndexFileAnchorFileName(sourceFile.getFilePath(), projectBaseUrl);
+            return dependentFileNamesToAdd.includes(filePath);
+        }
     );
 
     return sourceFilesToEnsureEntities.concat(dependentFiles);

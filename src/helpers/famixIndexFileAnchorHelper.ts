@@ -22,7 +22,3 @@ export const getFamixIndexFileAnchorFileName = (absolutePath: string, absolutePa
     }
     return pathInProject;
 };
-
-export const getAbsoluteFileNameFromFamixIndexFileAnchor = (famixIndexFileAnchor: string) => {
-    return `/${famixIndexFileAnchor}`;
-};

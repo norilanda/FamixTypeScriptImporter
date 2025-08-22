@@ -148,7 +148,9 @@ export class Importer {
 
         removeDependentAssociations(this.entityDictionary.famixRep, associationsToRemove);
 
-        const sourceFilesToEnsure = getSourceFilesToUpdate(associationsToRemove, sourceFileChangeMap, allSourceFiles);
+        const sourceFilesToEnsure = getSourceFilesToUpdate(
+            associationsToRemove, sourceFileChangeMap, allSourceFiles, this.entityDictionary.getAbsolutePath()
+        );
 
         this.processFunctions.processFiles(sourceFilesToEnsure);
         const sourceFilesToDelete = sourceFileChangeMap.get(SourceFileChangeType.Delete) || [];
