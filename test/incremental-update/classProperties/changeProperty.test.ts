@@ -148,3 +148,33 @@ describe('Change property name in a class in a single file', () => {
     expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
   });
 });
+
+describe('Change property name in a interface in a single file', () => {
+  const sourceCodeWithProperty = `
+    interface ${className} {
+      ${propertyName}: number;
+    }
+  `;
+
+  const sourceCodeWithRenamedProperty = `
+    interface ${className} {
+      ${newPropertyName}: number;
+    }
+  `;
+
+  it('should update the property name in the Famix representation', () => {
+    // arrange
+    const testProjectBuilder = new IncrementalUpdateProjectBuilder();
+    testProjectBuilder.addSourceFile(sourceFileName, sourceCodeWithProperty);
+    const { importer, famixRep } = testProjectBuilder.build();
+    const sourceFile = testProjectBuilder.changeSourceFile(sourceFileName, sourceCodeWithRenamedProperty);
+
+    // act
+    const fileChangesMap = getUpdateFileChangesMap(sourceFile);
+    importer.updateFamixModelIncrementally(fileChangesMap);
+
+    // assert
+    const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeWithRenamedProperty);
+    expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
+  });
+});
