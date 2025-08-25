@@ -7,6 +7,19 @@ import { SourceFile } from "ts-morph";
 
 // TODO: add tests for these methods
 
+/** 
+ * NOTE: for now the case when we create a new file and there were imports from it
+ * even if it didn't exist may not be working. 
+ * 
+ * Ex.,:
+ * fileA: *does not exists yet*
+ * fileB: import { Something } from './fileA';
+ * ------------------------
+ * fileA: export class Something { }
+ * 
+ * (the fileB may not be updated here)
+*/
+
 /**
  * Based on import clauses finds the dependent files and returns the associations
  * that are transitively dependent on the changed files. It does it recursively.
