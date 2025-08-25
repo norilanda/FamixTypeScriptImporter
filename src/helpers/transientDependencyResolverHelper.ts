@@ -1,9 +1,32 @@
 import { EntityWithSourceAnchor } from "../lib/famix/model/famix/sourced_entity";
 import { EntityDictionary } from "../famix_functions/EntityDictionary";
 import { Class, ImportClause, IndexedFileAnchor, Interface } from "../lib/famix/model/famix";
+import { getFamixIndexFileAnchorFileName } from "./famixIndexFileAnchorHelper";
+import { SourceFileChangeType } from "../analyze";
+import { SourceFile } from "ts-morph";
 
 // TODO: add tests for these methods
-export const getTransientDependentAssociations = (
+
+/**
+ * Based on import clauses finds the dependent files and returns the associations
+ * that are transitively dependent on the changed files. It does it recursively.
+ */
+export const getTransientDependentEntities = (
+    entityDictionary: EntityDictionary, 
+    sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>,
+) => {
+    const absoluteProjectPath = entityDictionary.getAbsolutePath();
+
+    const changedFilesNames = Array.from(sourceFileChangeMap.values())
+        .flat()
+        .map(sourceFile => getFamixIndexFileAnchorFileName(sourceFile.getFilePath(), absoluteProjectPath));
+
+    const transientDependentAssociations = getTransientDependentAssociations(entityDictionary, changedFilesNames);
+
+    return transientDependentAssociations;
+};
+
+const getTransientDependentAssociations = (
     entityDictionary: EntityDictionary,
     changedFilesNames: string []
 ) => {

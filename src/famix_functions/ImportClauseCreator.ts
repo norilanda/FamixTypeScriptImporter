@@ -28,6 +28,17 @@ export class ImportClauseCreator {
         this.ensureFamixImportClause(importedEntity, importingEntity, moduleSpecifier, importDeclaration);
     }
 
+    /**
+     * Currently we create one import clause per every export in the file that is imported with namespace import.
+     * Ex.: import * as ns from "module";
+     * if exporting file contains namespace reexport - we will create a separate import clause between importing file
+     * and every reexport. 
+     * 
+     * The advantage of this approach - is that we can see every imported entity even if it is reexported multiple times.
+     * 
+     * The disadvantage - is that it may lead to a large number of import clauses. If this will cause a performance issue - 
+     * we may try to create only one import clause for a namespace import. Then we can make the imported entity a stub.
+     */
     public ensureFamixImportClauseForNamespaceImport(namespaceImport: Identifier, importingSourceFile: SourceFile) {
         const localSymbol = namespaceImport.getSymbolOrThrow();
         const moduleSymbol = localSymbol.getAliasedSymbolOrThrow();
@@ -62,6 +73,15 @@ export class ImportClauseCreator {
         }
     }
 
+    /**
+     * Implement it similar to named import. If we export an expression assignment, ex.: export default 42 + 3; 
+     * - than just create a stub. For the cases like next:
+     * class A { }
+     * class B { }
+     * export default { A, B }
+     * I would suggest to create a stub for the default import. But also it can be implemented in a way of
+     * creating separate import clauses for A and B, but it may add unnecessary complexity.
+     */
     public ensureFamixImportClauseForDefaultImport(
         importDeclaration: ImportDeclaration, defaultImport: Identifier, module: SourceFile
     ) {

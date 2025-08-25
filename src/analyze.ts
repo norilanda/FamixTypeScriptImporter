@@ -5,10 +5,11 @@ import { Logger } from "tslog";
 import { EntityDictionary, EntityDictionaryConfig } from "./famix_functions/EntityDictionary";
 import path from "path";
 import { TypeScriptToFamixProcessor  } from "./analyze_functions/process_functions";
-import { getFamixIndexFileAnchorFileName, getTransientDependentEntities } from "./helpers";
+import { getFamixIndexFileAnchorFileName } from "./helpers";
 import { isSourceFileAModule } from "./famix_functions/helpersTsMorphElementsProcessing";
 import { FamixBaseElement } from "./lib/famix/famix_base_element";
-import { getDependentAssociations, getSourceFilesToUpdate, removeDependentAssociations } from "./helpers";
+import { getDirectDependentAssociations, getSourceFilesToUpdate, removeDependentAssociations } from "./helpers";
+import { getTransientDependentEntities } from "./helpers/transientDependencyResolverHelper";
 
 export const logger = new Logger({ name: "ts2famix", minLevel: 2 });
 
@@ -141,10 +142,10 @@ export class Importer {
         );
 
         const allSourceFiles = this.project.getSourceFiles();
-        const dependentAssociations = getDependentAssociations(removedEntities);
+        const directDependentAssociations = getDirectDependentAssociations(removedEntities);
         const transientDependentAssociations = getTransientDependentEntities(this.entityDictionary, sourceFileChangeMap);
 
-        const associationsToRemove = [...dependentAssociations, ...transientDependentAssociations];
+        const associationsToRemove = [...directDependentAssociations, ...transientDependentAssociations];
 
         removeDependentAssociations(this.entityDictionary.famixRep, associationsToRemove);
 

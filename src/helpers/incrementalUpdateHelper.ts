@@ -6,8 +6,6 @@ import { SourceFileChangeType } from '../analyze';
 import { SourceFile } from 'ts-morph';
 import { getFamixIndexFileAnchorFileName } from './famixIndexFileAnchorHelper';
 import { FamixRepository } from '../lib/famix/famix_repository';
-import { EntityDictionary } from 'src/famix_functions/EntityDictionary';
-import { getTransientDependentAssociations } from './transientDependencyResolverHelper';
 
 // TODO: add tests for these methods
 export const getSourceFilesToUpdate = (
@@ -49,7 +47,10 @@ const getDependentSourceFileNames = (dependentAssociations: EntityWithSourceAnch
     return dependentFileNames;
 };
 
-export const getDependentAssociations = (entities: FamixBaseElement[]) => {
+/**
+ * Finds all the associations that include the given entities as dependencies
+ */
+export const getDirectDependentAssociations = (entities: FamixBaseElement[]) => {
     const dependentAssociations: EntityWithSourceAnchor[] = [];
 
     entities.forEach(entity => {
@@ -57,21 +58,6 @@ export const getDependentAssociations = (entities: FamixBaseElement[]) => {
     });
 
     return dependentAssociations;
-};
-
-export const getTransientDependentEntities = (
-    entityDictionary: EntityDictionary, 
-    sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>,
-) => {
-    const absoluteProjectPath = entityDictionary.getAbsolutePath();
-
-    const changedFilesNames = Array.from(sourceFileChangeMap.values())
-        .flat()
-        .map(sourceFile => getFamixIndexFileAnchorFileName(sourceFile.getFilePath(), absoluteProjectPath));
-
-    const transientDependentAssociations = getTransientDependentAssociations(entityDictionary, changedFilesNames);
-
-    return transientDependentAssociations;
 };
 
 const getDependentAssociationsForEntity = (entity: FamixBaseElement) => {
