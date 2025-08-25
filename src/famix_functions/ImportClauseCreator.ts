@@ -17,7 +17,7 @@ export class ImportClauseCreator {
 
     public ensureFamixImportClauseForNamedImport(
         importDeclaration: ImportDeclaration | ExportDeclaration, 
-        namedImport: ImportSpecifier | ExportSpecifier, 
+        namedImport: ImportSpecifier | ExportSpecifier | Identifier, 
         importingSourceFile: SourceFile
     ) {
         const namedEntityDeclaration = getDeclarationFromImportOrExport(namedImport);
@@ -55,12 +55,20 @@ export class ImportClauseCreator {
             const reexportedExports = moduleSpecifierSymbol.getExports();
             this.handleNamespaceImportOrExport(reexportedExports, importingEntity, moduleSpecifier, exportDeclaration);
         } else {
+            // TODO: add a stub to the repo only when it is checked that the import clause does not exists yet
+            // to avoid stub duplication
             const importedEntity = this.ensureImportedEntityStub(exportDeclaration);
             this.ensureFamixImportClause(importedEntity, importingEntity, moduleSpecifier, exportDeclaration);
         }
     }
 
-    public ensureFamixImportClauseForDefaultImport(defaultImport: Identifier) {
+    public ensureFamixImportClauseForDefaultImport(
+        importDeclaration: ImportDeclaration, defaultImport: Identifier, module: SourceFile
+    ) {
+        const namedEntityDeclaration = getDeclarationFromImportOrExport(defaultImport);
+        const moduleSpecifier = this.getModuleSpecifierFromDeclaration(importDeclaration);
+
+        // TODO: finish implementation
         throw new Error("Not implemented");
     }
 
@@ -77,6 +85,9 @@ export class ImportClauseCreator {
         }
         if (!importedEntity) {
             // TODO: check how do we create the FQN for the import specifier
+            
+            // TODO: add a stub to the repo only when it is checked that the import clause does not exists yet
+            // to avoid stub duplication
             importedEntity = this.ensureImportedEntityStub(importedEntityDeclaration);
         }
         return importedEntity;
@@ -159,6 +170,8 @@ export class ImportClauseCreator {
 
         // It no exports found - create a stub
         if (exportsOfModuleSet.size === 0) {
+            // TODO: add a stub to the repo only when it is checked that the import clause does not exists yet
+            // to avoid stub duplication
             importedEntity = this.ensureImportedEntityStub(importOrExportDeclaration);
             this.ensureFamixImportClause(importedEntity, importingEntity, moduleSpecifier, importOrExportDeclaration);
             return;
@@ -172,6 +185,8 @@ export class ImportClauseCreator {
                     exportsOfModuleSet.add(aliasedSmb);
                 }
             } else { // else - it means the re-export chain is broken
+                // TODO: add a stub to the repo only when it is checked that the import clause does not exists yet
+                // to avoid stub duplication
                 importedEntity = this.ensureImportedEntityStub(importOrExportDeclaration);
                 this.ensureFamixImportClause(importedEntity, importingEntity, moduleSpecifier, importOrExportDeclaration); 
             }
@@ -187,6 +202,8 @@ export class ImportClauseCreator {
                     }
                 });
             } else { // else - it means the re-export chain is broken
+                // TODO: add a stub to the repo only when it is checked that the import clause does not exists yet
+                // to avoid stub duplication
                 importedEntity = this.ensureImportedEntityStub(importOrExportDeclaration);
                 this.ensureFamixImportClause(importedEntity, importingEntity, moduleSpecifier, importOrExportDeclaration);
             }
