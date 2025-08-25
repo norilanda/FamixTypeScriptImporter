@@ -836,15 +836,14 @@ export class TypeScriptToFamixProcessor  {
                 const defaultImport = impDecl.getDefaultImport();
                 if (defaultImport !== undefined) {
                     this.importClauseCreator.ensureFamixImportClauseForDefaultImport(
-                        impDecl,
-                        defaultImport,
+                        impDecl, defaultImport, module
                     );
                 }
     
                 const namespaceImport = impDecl.getNamespaceImport();
                 if (namespaceImport !== undefined) {
                     this.importClauseCreator.ensureFamixImportClauseForNamespaceImport(
-                        namespaceImport, module, module
+                        namespaceImport, module
                     );
                 }
             });
