@@ -843,7 +843,7 @@ export class TypeScriptToFamixProcessor  {
                 const namespaceImport = impDecl.getNamespaceImport();
                 if (namespaceImport !== undefined) {
                     this.importClauseCreator.ensureFamixImportClauseForNamespaceImport(
-                        namespaceImport, module
+                        impDecl, namespaceImport, module
                     );
                 }
             });

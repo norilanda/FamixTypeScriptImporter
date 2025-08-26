@@ -39,11 +39,13 @@ export class ImportClauseCreator {
      * The disadvantage - is that it may lead to a large number of import clauses. If this will cause a performance issue - 
      * we may try to create only one import clause for a namespace import. Then we can make the imported entity a stub.
      */
-    public ensureFamixImportClauseForNamespaceImport(namespaceImport: Identifier, importingSourceFile: SourceFile) {
+    public ensureFamixImportClauseForNamespaceImport(
+        importDeclaration: ImportDeclaration, namespaceImport: Identifier, importingSourceFile: SourceFile
+    ) {
+        const moduleSpecifier = this.getModuleSpecifierFromDeclaration(importDeclaration);
+
         const localSymbol = namespaceImport.getSymbolOrThrow();
         const moduleSymbol = localSymbol.getAliasedSymbolOrThrow();
-
-        const moduleSpecifier = this.getModuleSpecifierFromIdentifier(moduleSymbol);
         const exportsOfModule = moduleSymbol.getExports();
 
         const importingEntity = this.ensureImportingEntity(importingSourceFile);
@@ -153,14 +155,6 @@ export class ImportClauseCreator {
             moduleSpecifierFileName ?? '',
             this.entityDictionary.getAbsolutePath()
         );
-    }
-
-    private getModuleSpecifierFromIdentifier(moduleSymbol: Symbol): string {
-        const moduleSourceFile = moduleSymbol.getValueDeclaration();
-        const moduleSourceFileName = moduleSourceFile && (moduleSourceFile instanceof SourceFile)
-            ? moduleSourceFile.getFilePath()
-            : '';
-        return getFamixIndexFileAnchorFileName(moduleSourceFileName, this.entityDictionary.getAbsolutePath());
     }
 
     private ensureImportedEntityStub(importOrExportDeclaration: Node<ts.Node>) {
