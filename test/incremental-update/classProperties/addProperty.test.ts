@@ -45,7 +45,7 @@ describe('Add new properties to a class in a single file', () => {
 		expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
 	});
 
-	it('should create new properties in the Famix representation for a class with parameter properites', () => {
+	it('should create new properties in the Famix representation for a class with parameter properties', () => {
 		// arrange
 		const testProjectBuilder = new IncrementalUpdateProjectBuilder();
 		testProjectBuilder.addSourceFile(sourceFileName, sourceCodeWithNoProperty);
