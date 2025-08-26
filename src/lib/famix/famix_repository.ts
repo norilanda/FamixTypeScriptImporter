@@ -264,7 +264,6 @@ export class FamixRepository {
      * @param element A Famix element
      */
     public addElement(element: FamixBaseElement): void {
-        logger.debug(`Adding Famix element ${element.constructor.name} with id ${element.id}`);
         // if (element instanceof Class) {
         //     this.famixClasses.add(element);
         // } else if (element instanceof Interface) {
@@ -284,6 +283,7 @@ export class FamixRepository {
         this.elements.add(element);
         element.id = this.idCounter;
         this.idCounter++;
+        logger.debug(`Adding Famix element ${element.constructor.name} with id ${element.id}`);
         this.validateFQNs();
     }
 
