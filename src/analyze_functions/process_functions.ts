@@ -383,7 +383,7 @@ export class TypeScriptToFamixProcessor  {
      * @returns A Famix.Property representing the property
      */
     private processProperty(p: PropertyDeclaration | PropertySignature): Famix.Property {
-        const fmxProperty = this.entityDictionary.createFamixProperty(p);
+        const fmxProperty = this.entityDictionary.ensureFamixProperty(p);
     
         logger.debug(`property: ${p.getName()}, (${p.getType().getText()}), fqn = ${fmxProperty.fullyQualifiedName}`);
         logger.debug(` ---> It's a Property${(p instanceof PropertySignature) ? "Signature" : "Declaration"}!`);
@@ -396,7 +396,7 @@ export class TypeScriptToFamixProcessor  {
             // only add access if the p's first ancestor is not a PropertyDeclaration
             if (ancestor.getKindName() !== "PropertyDeclaration") {
                 logger.debug(`adding access to map: ${p.getName()}, (${p.getType().getText()}) Famix ${fmxProperty.name} id: ${fmxProperty.id}`);
-                this.accessMap.set(fmxProperty.id, p);
+                // this.accessMap.set(fmxProperty.id, p);
             }
         }
     
@@ -533,7 +533,7 @@ export class TypeScriptToFamixProcessor  {
         if (!property) {
             throw new Error(`Property ${propertyRepresentation.name} not found in class ${classDecl.getName()}`);
         }
-        const fmxProperty = this.entityDictionary.createFamixProperty(property);
+        const fmxProperty = this.entityDictionary.ensureFamixProperty(property);
         if (classDecl instanceof ClassDeclaration) {
             const fmxClass = this.entityDictionary.ensureFamixClass(classDecl);
             fmxClass.addProperty(fmxProperty);
