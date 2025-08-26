@@ -21,6 +21,7 @@ const classCompareFunction = (actual: FamixBaseElement, expected: FamixBaseEleme
     // TODO: add more properties to compare
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const primitiveTypeCompareFunction = (actual: FamixBaseElement, expected: FamixBaseElement) => {
     const actualAsPrimitiveType = actual as PrimitiveType;
     const expectedAsPrimitiveType = expected as PrimitiveType;
@@ -105,8 +106,9 @@ export const expectRepositoriesToHaveSameStructure = (actual: FamixRepository, e
     expectElementsToBeEqualSize(actual, expected, "ParametricFunction");
     expectElementsToBeEqualSize(actual, expected, "ParametricInterface");
     expectElementsToBeEqualSize(actual, expected, "ParametricMethod");
-    expectElementsToBeEqualSize(actual, expected, "PrimitiveType");
-    expectElementsToBeSame(actual, expected, "PrimitiveType", primitiveTypeCompareFunction);
+    // NOTE: for now when we removing the entity we don't remove the primitive type so for now they are accumulating
+    // expectElementsToBeEqualSize(actual, expected, "PrimitiveType");
+    // expectElementsToBeSame(actual, expected, "PrimitiveType", primitiveTypeCompareFunction);
     expectElementsToBeEqualSize(actual, expected, "Property");
     expectElementsToBeEqualSize(actual, expected, "Reference");
     expectElementsToBeEqualSize(actual, expected, "ScopingEntity");

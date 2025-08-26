@@ -447,64 +447,62 @@ export class EntityDictionary {
      * @param property A property
      * @returns The Famix model of the property
      */
-    public createFamixProperty(property: PropertyDeclaration | PropertySignature): Famix.Property {
-        const fmxProperty = new Famix.Property();
-        const isSignature = property instanceof PropertySignature;
-        fmxProperty.name = property.getName();
+    public ensureFamixProperty(property: PropertyDeclaration | PropertySignature): Famix.Property {
+        const mapToFamixElement = (property: PropertyDeclaration | PropertySignature) => {
+            const fmxProperty = new Famix.Property();
+            const isSignature = property instanceof PropertySignature;
+            fmxProperty.name = property.getName();
 
-        let propTypeName = this.UNKNOWN_VALUE;
-        try {
-            propTypeName = property.getType().getText().trim();
-        } catch (error) {
-            logger.error(`> WARNING: got exception ${error}. Failed to get usable name for property: ${property.getName()}. Continuing...`);
-        }
-
-        const fmxType = this.createOrGetFamixType(propTypeName, property.getType(), property);
-        fmxProperty.declaredType = fmxType;
-
-        // add the visibility (public, private, etc.) to the fmxProperty
-        fmxProperty.visibility = "";
-
-        property.getModifiers().forEach(m => {
-            switch (m.getText()) {
-                case Scope.Public:
-                    fmxProperty.visibility = "public";
-                    break;
-                case Scope.Protected:
-                    fmxProperty.visibility = "protected";
-                    break;
-                case Scope.Private:
-                    fmxProperty.visibility = "private";
-                    break;
-                case "static":
-                    fmxProperty.isClassSide = true;
-                    break;
-                case "readonly":
-                    fmxProperty.readOnly = true;
-                    break;
-                default:
-                    break;
+            let propTypeName = this.UNKNOWN_VALUE;
+            try {
+                propTypeName = property.getType().getText().trim();
+            } catch (error) {
+                logger.error(`> WARNING: got exception ${error}. Failed to get usable name for property: ${property.getName()}. Continuing...`);
             }
-        });
 
-        if (!isSignature && property.getExclamationTokenNode()) {
-            fmxProperty.isDefinitelyAssigned = true;
-        }
-        if (property.getQuestionTokenNode()) {
-            fmxProperty.isOptional = true;
-        }
-        if (property.getName().substring(0, 1) === "#") {
-            fmxProperty.isJavaScriptPrivate = true;
-        }
+            const fmxType = this.createOrGetFamixType(propTypeName, property.getType(), property);
+            fmxProperty.declaredType = fmxType;
 
-        this.initFQN(property, fmxProperty);
-        this.makeFamixIndexFileAnchor(property, fmxProperty);
+            // add the visibility (public, private, etc.) to the fmxProperty
+            fmxProperty.visibility = "";
 
-        this.famixRep.addElement(fmxProperty);
+            property.getModifiers().forEach(m => {
+                switch (m.getText()) {
+                    case Scope.Public:
+                        fmxProperty.visibility = "public";
+                        break;
+                    case Scope.Protected:
+                        fmxProperty.visibility = "protected";
+                        break;
+                    case Scope.Private:
+                        fmxProperty.visibility = "private";
+                        break;
+                    case "static":
+                        fmxProperty.isClassSide = true;
+                        break;
+                    case "readonly":
+                        fmxProperty.readOnly = true;
+                        break;
+                    default:
+                        break;
+                }
+            });
 
-        this.fmxElementObjectMap.set(fmxProperty,property);
-
-        return fmxProperty;
+            if (!isSignature && property.getExclamationTokenNode()) {
+                fmxProperty.isDefinitelyAssigned = true;
+            }
+            if (property.getQuestionTokenNode()) {
+                fmxProperty.isOptional = true;
+            }
+            if (property.getName().substring(0, 1) === "#") {
+                fmxProperty.isJavaScriptPrivate = true;
+            }
+            return fmxProperty;
+        };
+        
+        return this.ensureFamixElement<PropertyDeclaration | PropertySignature, Famix.Property>(
+            property, mapToFamixElement
+        );
     }
 
     /**
