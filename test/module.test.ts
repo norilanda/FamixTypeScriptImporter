@@ -42,12 +42,6 @@ declare module "module-a" {
 
 logger.settings.minLevel = 0; // all your messages are belong to us
 
-        
-// const filePaths = new Array<string>();
-// filePaths.push("test_src/sampleForModule.ts");
-// filePaths.push("test_src/sampleForModule2.ts");
-// filePaths.push("test_src/sampleForModule3.ts");
-
 const fmxRep = importer.famixRepFromProject(project);
 
 describe('Tests for module', () => {
