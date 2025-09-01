@@ -14,15 +14,13 @@ import { logger } from "../analyze";
 import GraphemeSplitter = require('grapheme-splitter');
 import * as Helpers from "./helpers_creation";
 import * as FQNFunctions from "../fqn";
-import path from "path";
-import { convertToRelativePath } from "./helpers_path";
 import { SourceFileDataMap } from "./SourceFileData";
-import { getFamixIndexFileAnchorFileName } from "./famixIndexFileAnchorHelper";
+import { getFamixIndexFileAnchorFileName } from "../helpers";
 import { FullyQualifiedNameEntity } from "../lib/famix/model/interfaces";
 
 import { Node as TsMorphNode } from "ts-morph";
 import _ from "lodash";
-import { getInterfaceOrClassDeclarationFromExpression } from "./helpersTsMorphElementsProcessing";
+import { getInterfaceOrClassDeclarationFromExpression, isSourceFileAModule } from "./helpersTsMorphElementsProcessing";
 import { EntityWithSourceAnchor } from "../lib/famix/model/famix/sourced_entity";
 
 export type TSMorphObjectType = ImportDeclaration | ImportEqualsDeclaration | SourceFile | ModuleDeclaration | ClassDeclaration | InterfaceDeclaration | MethodDeclaration | ConstructorDeclaration | MethodSignature | FunctionDeclaration | FunctionExpression | ParameterDeclaration | VariableDeclaration | PropertyDeclaration | PropertySignature | TypeParameterDeclaration | Identifier | Decorator | GetAccessorDeclaration | SetAccessorDeclaration | ImportSpecifier | CommentRange | EnumDeclaration | EnumMember | TypeAliasDeclaration | ExpressionWithTypeArguments | TSMorphParametricType;
@@ -45,20 +43,15 @@ export class EntityDictionary {
     private config: EntityDictionaryConfig;
     private absolutePath: string = "";
     public famixRep = new FamixRepository();
+    // TODO: get rid of all the maps
     private fmxAliasMap = new SourceFileDataMap<string, Famix.Alias>(); // Maps the alias names to their Famix model
-    // private fmxClassMap = new SourceFileDataMap<string, Famix.Class | Famix.ParametricClass>(); // Maps the fully qualified class names to their Famix model
-    // private fmxInterfaceMap = new SourceFileDataMap<string, Famix.Interface | Famix.ParametricInterface>(); // Maps the interface names to their Famix model
-    private fmxModuleMap = new SourceFileDataMap<ModuleDeclaration, Famix.Module>(); // Maps the namespace names to their Famix model
-    private fmxFileMap = new SourceFileDataMap<string, Famix.ScriptEntity | Famix.Module>(); // Maps the source file names to their Famix model
     private fmxTypeMap = new SourceFileDataMap<TSMorphTypeDeclaration, Famix.Type | Famix.ParameterType>(); // Maps the types declarations to their Famix model
     private fmxPrimitiveTypeMap = new SourceFileDataMap<string, Famix.PrimitiveType>(); // Maps the primitive type names to their Famix model
     private fmxFunctionAndMethodMap = new SourceFileDataMap<string, Famix.Function | Famix.ParametricFunction | Famix.Method | Famix.ParametricMethod>; // Maps the function names to their Famix model
     private fmxArrowFunctionMap = new SourceFileDataMap<string, Famix.ArrowFunction>; // Maps the function names to their Famix model
     private fmxParameterMap = new SourceFileDataMap<ParameterDeclaration, Famix.Parameter>(); // Maps the parameters to their Famix model
     private fmxVariableMap = new SourceFileDataMap<VariableDeclaration, Famix.Variable>(); // Maps the variables to their Famix model
-    private fmxImportClauseMap = new SourceFileDataMap<ImportDeclaration | ImportEqualsDeclaration, Famix.ImportClause>(); // Maps the import clauses to their Famix model
     private fmxEnumMap = new SourceFileDataMap<EnumDeclaration, Famix.Enum>(); // Maps the enum names to their Famix model
-    private fmxInheritanceMap = new SourceFileDataMap<string, Famix.Inheritance>(); // Maps the inheritance names to their Famix model
     public fmxElementObjectMap = new SourceFileDataMap<Famix.Entity,TSMorphObjectType>();
     public tsMorphElementObjectMap = new SourceFileDataMap<TSMorphObjectType,Famix.Entity>();
     
@@ -222,17 +215,17 @@ export class EntityDictionary {
      * @param isModule A boolean indicating if the source file is a module
      * @returns The Famix model of the source file
      */
-    public createOrGetFamixFile(f: SourceFile, isModule: boolean): Famix.ScriptEntity | Famix.Module {
-        let fmxFile: Famix.ScriptEntity; // | Famix.Module;
+    public ensureFamixFile(f: SourceFile): Famix.ScriptEntity | Famix.Module {
+        const mapToFamixElement = (f: SourceFile) => {
+            let fmxFile: Famix.ScriptEntity | Famix.Module;
 
-        const fileName = f.getBaseName();
-        // USE getFQN INSTEAD OF getFilePath HERE ?
-        // const fullyQualifiedFilename = f.getFilePath();
-        const fullyQualifiedFilename = FQNFunctions.getFQN(f, f.getFilePath());
-        const foundFileName = this.fmxFileMap.get(fullyQualifiedFilename);
-        if (!foundFileName) {
+            const fileName = f.getBaseName();
+            const isModule = isSourceFileAModule(f);
             if (isModule) {
                 fmxFile = new Famix.Module();
+                (fmxFile as Famix.Module).isAmbient = false;
+                (fmxFile as Famix.Module).isNamespace = false;
+                (fmxFile as Famix.Module).isModule = true;
             }
             else {
                 fmxFile = new Famix.ScriptEntity();
@@ -240,20 +233,12 @@ export class EntityDictionary {
             fmxFile.name = fileName;
             fmxFile.numberOfLinesOfText = f.getEndLineNumber() - f.getStartLineNumber();
             fmxFile.numberOfCharacters = f.getFullText().length;
+            return fmxFile;
+        };
 
-            this.initFQN(f, fmxFile);
-
-            this.makeFamixIndexFileAnchor(f, fmxFile);
-
-            this.fmxFileMap.set(fullyQualifiedFilename, fmxFile);
-            this.famixRep.addElement(fmxFile);
-        }
-        else {
-            fmxFile = foundFileName;
-        }
-
-        this.fmxElementObjectMap.set(fmxFile,f);
-        return fmxFile;
+        return this.ensureFamixElement<SourceFile, Famix.ScriptEntity | Famix.Module>(
+            f, mapToFamixElement
+        );
     }
 
     /**
@@ -261,32 +246,20 @@ export class EntityDictionary {
      * @param moduleDeclaration A module
      * @returns The Famix model of the module
      */
-    public createOrGetFamixModule(moduleDeclaration: ModuleDeclaration): Famix.Module {
-        if (this.fmxModuleMap.has(moduleDeclaration)) {
-            const rModule = this.fmxModuleMap.get(moduleDeclaration);
-            if (rModule) { 
-               return rModule;
-            } else {
-                throw new Error(`Famix module ${moduleDeclaration.getName()} is not found in the module map.`);
-            }
-        }
+    public ensureFamixModule(moduleDeclaration: ModuleDeclaration): Famix.Module {
+        const mapToFamixElement = (moduleDeclaration: ModuleDeclaration) => {
+            const fmxModule = new Famix.Module();
+            const moduleName = moduleDeclaration.getName();
+            fmxModule.name = moduleName;
+            fmxModule.isAmbient = isAmbient(moduleDeclaration);
+            fmxModule.isNamespace = isNamespace(moduleDeclaration);
+            fmxModule.isModule = !fmxModule.isNamespace && !fmxModule.isAmbient;
+            return fmxModule;
+        };
 
-        const fmxModule = new Famix.Module();
-        const moduleName = moduleDeclaration.getName();
-        fmxModule.name = moduleName;
-        fmxModule.isAmbient = isAmbient(moduleDeclaration);
-        fmxModule.isNamespace = isNamespace(moduleDeclaration);
-        fmxModule.isModule = !fmxModule.isNamespace && !fmxModule.isAmbient;
-
-        this.initFQN(moduleDeclaration, fmxModule);
-        this.makeFamixIndexFileAnchor(moduleDeclaration, fmxModule);
-
-        this.fmxModuleMap.set(moduleDeclaration, fmxModule);
-
-        this.famixRep.addElement(fmxModule);
-
-        this.fmxElementObjectMap.set(fmxModule,moduleDeclaration);
-        return fmxModule;
+        return this.ensureFamixElement<ModuleDeclaration, Famix.Module>(
+            moduleDeclaration, mapToFamixElement
+        );
     }
 
     /**
@@ -351,7 +324,7 @@ export class EntityDictionary {
         );
     }
 
-    private ensureFamixElement<
+    public ensureFamixElement<
         TTMorphNode extends Node, 
         TFamixElement extends Famix.SourcedEntity>(
             node: TTMorphNode, 
@@ -1383,118 +1356,6 @@ export class EntityDictionary {
         }
     }
 
-    public createFamixImportClause(importedEntity: Famix.NamedEntity, importingEntity: Famix.Module) {
-        const fmxImportClause = new Famix.ImportClause();
-        fmxImportClause.importedEntity = importedEntity;
-        fmxImportClause.importingEntity = importingEntity;
-        importingEntity.addOutgoingImport(fmxImportClause);
-        this.famixRep.addElement(fmxImportClause);
-    }
-
-    /**
-     * Creates a Famix import clause
-     * @param importClauseInfo The information needed to create a Famix import clause
-     * @param importDeclaration The import declaration
-     * @param importer A source file which is a module
-     * @param moduleSpecifierFilePath The path of the module where the export declaration is
-     * @param importElement The imported entity
-     * @param isInExports A boolean indicating if the imported entity is in the exports
-     * @param isDefaultExport A boolean indicating if the imported entity is a default export
-     */
-    public oldCreateOrGetFamixImportClause(importClauseInfo: {importDeclaration?: ImportDeclaration | ImportEqualsDeclaration, importerSourceFile: SourceFile, moduleSpecifierFilePath: string, importElement: ImportSpecifier | Identifier, isInExports: boolean, isDefaultExport: boolean}): void {
-        const {importDeclaration, importerSourceFile: importer, moduleSpecifierFilePath, importElement, isInExports, isDefaultExport} = importClauseInfo;
-        if (importDeclaration && this.fmxImportClauseMap.has(importDeclaration)) {
-            const rImportClause = this.fmxImportClauseMap.get(importDeclaration);
-            if (rImportClause) { 
-                logger.debug(`Import clause ${importElement.getText()} already exists in map, skipping.`);
-                return;
-            } else {
-                throw new Error(`Import clause ${importElement.getText()} is not found in the import clause map.`);
-            }
-        }
-    
-        logger.info(`creating a new FamixImportClause for ${importDeclaration?.getText()} in ${importer.getBaseName()}.`);
-        const fmxImportClause = new Famix.ImportClause();
-    
-        let importedEntity: Famix.NamedEntity | Famix.StructuralEntity | undefined = undefined;
-        let importedEntityName: string;
-    
-        const absolutePathProject = this.getAbsolutePath();
-        
-        const absolutePath = path.normalize(moduleSpecifierFilePath);
-        logger.debug(`createFamixImportClause: absolutePath: ${absolutePath}`);
-        logger.debug(`createFamixImportClause: convertToRelativePath: ${convertToRelativePath(absolutePath, absolutePathProject)}`);
-        const pathInProject: string = convertToRelativePath(absolutePath, absolutePathProject).replace(/\\/g, "/");
-        logger.debug(`createFamixImportClause: pathInProject: ${pathInProject}`);
-        let pathName = "{" + pathInProject + "}.";
-        logger.debug(`createFamixImportClause: pathName: ${pathName}`);
-    
-        if (importDeclaration instanceof ImportDeclaration 
-            && importElement instanceof ImportSpecifier) { 
-                importedEntityName = importElement.getName();
-            pathName = pathName + importedEntityName;
-            if (isInExports) {
-                importedEntity = this.famixRep.getFamixEntityByFullyQualifiedName(pathName) as Famix.NamedEntity;
-                logger.debug(`Found exported entity: ${pathName}`);
-            }
-            if (importedEntity === undefined) {
-                importedEntity = new Famix.NamedEntity();
-                importedEntity.name = importedEntityName;
-                if (!isInExports) {
-                    importedEntity.isStub = true;
-                }
-                logger.debug(`Creating named entity ${importedEntityName} for ImportSpecifier ${importElement.getText()}`);
-                this.initFQN(importElement, importedEntity);
-                logger.debug(`Assigned FQN to entity: ${importedEntity.fullyQualifiedName}`);
-                this.makeFamixIndexFileAnchor(importElement, importedEntity);
-                this.famixRep.addElement(importedEntity);
-                logger.debug(`Added entity to repository: ${importedEntity.fullyQualifiedName}`);
-            }
-        }
-        else if (importDeclaration instanceof ImportEqualsDeclaration) {
-            importedEntityName = importDeclaration?.getName();
-            pathName = pathName + importedEntityName;
-            importedEntity = new Famix.StructuralEntity();
-            importedEntity.name = importedEntityName;
-            this.initFQN(importDeclaration, importedEntity);
-            logger.debug(`Assigned FQN to ImportEquals entity: ${importedEntity.fullyQualifiedName}`);
-            this.makeFamixIndexFileAnchor(importElement, importedEntity);
-            const anyType = this.createOrGetFamixType('any', undefined, importDeclaration);
-            (importedEntity as Famix.StructuralEntity).declaredType = anyType;
-        } else {  
-            importedEntityName = importElement.getText();
-            pathName = pathName + (isDefaultExport ? "defaultExport" : "namespaceExport");
-            importedEntity = new Famix.NamedEntity();
-            importedEntity.name = importedEntityName;
-            this.initFQN(importElement, importedEntity);
-            logger.debug(`Assigned FQN to default/namespace entity: ${importedEntity.fullyQualifiedName}`);
-            this.makeFamixIndexFileAnchor(importElement, importedEntity);
-        }
-        if (!isInExports) {
-            this.famixRep.addElement(importedEntity);
-            logger.debug(`Added non-exported entity to repository: ${importedEntity.fullyQualifiedName}`);
-        }
-        const importerFullyQualifiedName = FQNFunctions.getFQN(importer, this.getAbsolutePath());
-        const fmxImporter = this.famixRep.getFamixEntityByFullyQualifiedName(importerFullyQualifiedName) as Famix.Module;
-        fmxImportClause.importingEntity = fmxImporter;
-        fmxImportClause.importedEntity = importedEntity;
-        if (importDeclaration instanceof ImportEqualsDeclaration) {
-            fmxImportClause.moduleSpecifier = importDeclaration?.getModuleReference().getText() as string;
-        } else {
-            fmxImportClause.moduleSpecifier = importDeclaration?.getModuleSpecifierValue() as string;
-        }
-    
-        logger.debug(`ImportClause: ${fmxImportClause.importedEntity?.name} (type=${Helpers.getSubTypeName(fmxImportClause.importedEntity)}) imported by ${fmxImportClause.importingEntity?.name}`);
-    
-        fmxImporter.addOutgoingImport(fmxImportClause);
-        this.famixRep.addElement(fmxImportClause);
-    
-        if (importDeclaration) {
-            this.fmxElementObjectMap.set(fmxImportClause, importDeclaration);
-            this.fmxImportClauseMap.set(importDeclaration, fmxImportClause);
-        }
-    }
-
     /**
      * Creates a Famix Arrow Function
      * @param arrowExpression An Expression
@@ -1887,17 +1748,13 @@ export class EntityDictionary {
 
     public removeEntitiesBySourceFilePath(sourceFilePath: string) {
         this.fmxAliasMap.removeBySourceFileName(sourceFilePath);
-        this.fmxModuleMap.removeBySourceFileName(sourceFilePath);
-        this.fmxFileMap.removeBySourceFileName(sourceFilePath);
         this.fmxTypeMap.removeBySourceFileName(sourceFilePath);
         this.fmxPrimitiveTypeMap.removeBySourceFileName(sourceFilePath);
         this.fmxFunctionAndMethodMap.removeBySourceFileName(sourceFilePath);
         this.fmxArrowFunctionMap.removeBySourceFileName(sourceFilePath);
         this.fmxParameterMap.removeBySourceFileName(sourceFilePath);
         this.fmxVariableMap.removeBySourceFileName(sourceFilePath);
-        this.fmxImportClauseMap.removeBySourceFileName(sourceFilePath);
         this.fmxEnumMap.removeBySourceFileName(sourceFilePath);
-        this.fmxInheritanceMap.removeBySourceFileName(sourceFilePath);
         this.fmxElementObjectMap.removeBySourceFileName(sourceFilePath);
         this.tsMorphElementObjectMap.removeBySourceFileName(sourceFilePath);
     }

@@ -1,4 +1,5 @@
-import { ArrowFunction, ClassDeclaration, ExpressionWithTypeArguments, ImportSpecifier, InterfaceDeclaration, ModuleDeclaration, Node, SourceFile, SyntaxKind } from "ts-morph";
+import { ArrowFunction, ClassDeclaration, ExportSpecifier, ExpressionWithTypeArguments, Identifier, ImportSpecifier, 
+    InterfaceDeclaration, ModuleDeclaration, Node, SourceFile, SyntaxKind, ts } from "ts-morph";
 import { Symbol as TSMorphSymbol } from "ts-morph";
 
 /**
@@ -25,6 +26,18 @@ export function getArrowFunctionClasses(f: ArrowFunction): ClassDeclaration[] {
 
     findClasses(f);
     return classes;
+}
+
+/**
+ * Checks if the file has any imports or exports to be considered a module
+ * @param sourceFile A source file
+ * @returns A boolean indicating if the file is a module
+ */
+export function isSourceFileAModule(sourceFile: SourceFile): boolean {
+    return sourceFile.getImportDeclarations().length > 0 || 
+    sourceFile.getExportedDeclarations().size > 0 || 
+    sourceFile.getExportDeclarations().length > 0 || 
+    sourceFile.getDescendantsOfKind(SyntaxKind.ImportEqualsDeclaration).length > 0;
 }
 
 // NOTE: Finding the symbol may not work when used bare import without baseUrl
@@ -90,3 +103,23 @@ function resolveSymbolToInterfaceOrClassDeclaration(symbol: TSMorphSymbol): Inte
     }
     return undefined;
 }
+
+export const getDeclarationFromImportOrExport = (importOrExport: ImportSpecifier | ExportSpecifier | Identifier): Node<ts.Node> | undefined => {
+    const symbol = importOrExport.getSymbol();
+    const aliasedSymbol = symbol?.getAliasedSymbol();
+
+    return getDeclarationFromSymbol(aliasedSymbol);
+};
+
+export const getDeclarationFromSymbol = (symbol: TSMorphSymbol | undefined) => {
+    let entityDeclaration = symbol?.getValueDeclaration();
+
+    if (!entityDeclaration) {
+        const declarations = symbol?.getDeclarations();
+        if (declarations && declarations?.length > 0) {
+            entityDeclaration = declarations[0];
+        }
+    }
+
+    return entityDeclaration;
+};

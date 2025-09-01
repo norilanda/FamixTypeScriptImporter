@@ -4,6 +4,7 @@ import * as Famix from "./model/famix";
 import { TSMorphObjectType } from "../../famix_functions/EntityDictionary";
 import { logger } from "../../analyze";
 import { EntityWithSourceAnchor } from "./model/famix/sourced_entity";
+import { FullyQualifiedNameEntity } from "./model/interfaces/fully_qualified_name_entity";
 
 /**
  * This class is used to store all Famix elements
@@ -41,7 +42,7 @@ export class FamixRepository {
      * @returns The Famix entity corresponding to the fully qualified name or undefined if it doesn't exist
      */
     public getFamixEntityByFullyQualifiedName<T extends FamixBaseElement>(fullyQualifiedName: string): T | undefined {
-        const allEntities = Array.from(this.elements.values()).filter(e => e instanceof NamedEntity) as Array<NamedEntity>;
+        const allEntities = Array.from(this.elements.values()).filter(e => (e as NamedEntity).fullyQualifiedName) as Array<NamedEntity>;
         const entity = allEntities.find(e => 
             // {console.log(`namedEntity: ${e.fullyQualifiedName}`); 
             // return 
@@ -95,58 +96,30 @@ export class FamixRepository {
     public removeElements(entities: FamixBaseElement[]): void {
         for (const entity of entities) {
             this.elements.delete(entity);
-            // if (entity instanceof Class) {
-            //     this.famixClasses.delete(entity);
-            // } else if (entity instanceof Interface) {
-            //     this.famixInterfaces.delete(entity);
-            // } else 
-            if (entity instanceof Module) {
-                this.famixModules.delete(entity);
-            } else if (entity instanceof Variable) {
-                this.famixVariables.delete(entity);
-            } else if (entity instanceof Method) {
-                this.famixMethods.delete(entity);
-            } else if (entity instanceof FamixFunctionEntity || entity instanceof ArrowFunction) {
-                this.famixFunctions.delete(entity);
-            } else if (entity instanceof ScriptEntity || entity instanceof Module) {
-                this.famixFiles.delete(entity);
-            }
-
-            // if (entity instanceof Famix.SourcedEntity) {
-            //     this.elements.delete(entity.sourceAnchor);
-            // }
-            // TODO: maybe delete smth else?
         }
     }
 
     public removeRelatedAssociations(entities: FamixBaseElement[]): void {
         for (const entity of entities) {
-            // Array.from(this.elements.values()).forEach(e => {
-            //     if (e instanceof Famix.Inheritance && e.subclass === entity) {
-            //         this.elements.delete(e);
-            //         e.subclass.removeSuperInheritance(e);
-            //         e.superclass.removeSubInheritance(e);
-            //     } else if (e instanceof Famix.ImportClause && e.importingEntity === entity) {
-            //         this.elements.delete(e);
-            //         e.importingEntity.removeOutgoingImport(e);
-            //         e.importedEntity.removeIncomingImport(e);
-            //     } else if (e instanceof Famix.Access && e.accessor === entity) {
-            //         this.elements.delete(e);
-            //         e.accessor.removeAccess(e);
-            //         e.variable.removeIncomingAccess(e);
-            //     } else if (e instanceof Famix.Concretisation && e.concreteEntity === entity) {
-            //         this.elements.delete(e);
-            //     }
-            // });
-
             if (entity instanceof Famix.Inheritance) {
                 entity.subclass.removeSuperInheritance(entity);
                 entity.superclass.removeSubInheritance(entity);
+            } else if (entity instanceof Famix.ImportClause) {
+                entity.importingEntity.removeOutgoingImport(entity);
+                entity.importedEntity.removeIncomingImport(entity);
             }
             // TODO: Add more conditions here for other types of associations
         }
     }
 
+    // NOTE: consider storing all the associations (ImportClause, Inheritance, ...) if we need a better performance
+    public getImportClauses(): Famix.ImportClause[] {
+        return Array.from(this.elements.values()).filter(e => e instanceof Famix.ImportClause) as Famix.ImportClause[];
+    }
+
+    public getInheritances(): Famix.Inheritance[] {
+        return Array.from(this.elements.values()).filter(e => e instanceof Famix.Inheritance) as Famix.Inheritance[];
+    }
 
     // Only for tests
 
@@ -291,7 +264,6 @@ export class FamixRepository {
      * @param element A Famix element
      */
     public addElement(element: FamixBaseElement): void {
-        logger.debug(`Adding Famix element ${element.constructor.name} with id ${element.id}`);
         // if (element instanceof Class) {
         //     this.famixClasses.add(element);
         // } else if (element instanceof Interface) {
@@ -311,6 +283,7 @@ export class FamixRepository {
         this.elements.add(element);
         element.id = this.idCounter;
         this.idCounter++;
+        logger.debug(`Adding Famix element ${element.constructor.name} with id ${element.id}`);
         this.validateFQNs();
     }
 

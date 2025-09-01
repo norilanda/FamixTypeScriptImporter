@@ -1,19 +1,31 @@
 import { createConnection, DidChangeWatchedFilesParams } from 'vscode-languageserver/node';
 import { FileChangesMap } from '../model/FileChangesMap';
 import { FamixProjectManager } from '../model/FamixProjectManager';
+import { minimatch } from 'minimatch';
+import * as url from 'url';
 
 export const onDidChangeWatchedFiles = async (
     params: DidChangeWatchedFilesParams,
     connection: ReturnType<typeof createConnection>, 
     fileChangesMap: FileChangesMap,
-    famixProjectManager: FamixProjectManager
+    famixProjectManager: FamixProjectManager,
+    globPatternsForFilesToExclude: string[],
 ) => {
     for (const change of params.changes) {
+        const shouldBeExcluded = globPatternsForFilesToExclude.some(
+            pattern => minimatch(url.fileURLToPath(change.uri), pattern)
+        );
+        if (shouldBeExcluded) {
+            continue;
+        }
         fileChangesMap.addFile(change);
     }
 
     const mapSlice = fileChangesMap.getAndClearFileChangesMap();
-    // TODO: ensure that there is no race condition (when new changes are added while we are processing the previous ones)
+    if (mapSlice.size === 0) {
+        return;
+    }
+
     try {
         await famixProjectManager.updateFamixModelIncrementally(mapSlice);
 

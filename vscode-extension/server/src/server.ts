@@ -14,10 +14,10 @@ import {
 import { registerCommandHandlers } from './commandHandlers';
 import { registerEventHandlers } from './eventHandlers';
 import { getTsMorphProject } from 'ts2famix';
-import { findTypeScriptProject } from './utils';
+import { createGlobPatternsToWatch, findTypeScriptProject } from './utils';
 import { FamixProjectManager } from './model/FamixProjectManager';
 import { FamixModelExporter } from './model/FamixModelExporter';
-import { err, ok, Result } from 'neverthrow';
+import { err } from 'neverthrow';
 
 let hasDidChangeWatchedFilesCapability = false;
 
@@ -52,10 +52,18 @@ connection.onInitialize((params) => {
 connection.onInitialized(async () => {
     if (hasDidChangeWatchedFilesCapability) {
         try {
+            const result = await findTypeScriptProject(connection);
+            if (result.isErr()) {
+                connection.window.showErrorMessage(result.error.message);
+                return err(result.error);
+            }
+            const { tsConfigPath, baseUrl } = result.value;
+
+            const globPatternForFilesToWatch = createGlobPatternsToWatch();
             const registrationOptions: DidChangeWatchedFilesRegistrationOptions = {
                 watchers: [
                     { 
-                        globPattern: '{**/*.ts,**/tsconfig.json}', 
+                        globPattern: globPatternForFilesToWatch, 
                         kind: WatchKind.Create | WatchKind.Change | WatchKind.Delete 
                     }
                 ]
@@ -70,12 +78,9 @@ connection.onInitialized(async () => {
                 }]
             });
             
-            registerEventHandlers(connection, famixProjectManager);
-            const initializationResult = await initializeFamixProjectManager();
-            if (initializationResult.isErr()) {
-                connection.window.showErrorMessage(initializationResult.error.message);
-                return;
-            }
+            registerEventHandlers(connection, famixProjectManager, tsConfigPath);
+            const tsMorphProject = getTsMorphProject(tsConfigPath, baseUrl);
+            famixProjectManager.initializeFamixModel(tsMorphProject);
         } catch (error) {
             connection.console.error(`Failed to register file watcher: ${error}`);
             // TODO: Handle the error here
@@ -89,15 +94,3 @@ connection.onInitialized(async () => {
 registerCommandHandlers(connection, famixProjectManager);
 
 connection.listen();
-
-const initializeFamixProjectManager = async (): Promise<Result<void, Error>> => {
-    const result = await findTypeScriptProject(connection);
-    if (result.isErr()) {
-        return err(result.error);
-    }
-    const { tsConfigPath, baseUrl } = result.value;
-    const tsMorphProject = getTsMorphProject(tsConfigPath, baseUrl);
-
-    famixProjectManager.initializeFamixModel(tsMorphProject);
-    return ok();
-};

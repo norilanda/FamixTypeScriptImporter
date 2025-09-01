@@ -1,12 +1,13 @@
-import { ClassDeclaration, MethodDeclaration, VariableStatement, FunctionDeclaration, VariableDeclaration, InterfaceDeclaration, ParameterDeclaration, ConstructorDeclaration, MethodSignature, SourceFile, ModuleDeclaration, PropertyDeclaration, PropertySignature, Decorator, GetAccessorDeclaration, SetAccessorDeclaration, ExportedDeclarations, CommentRange, EnumDeclaration, EnumMember, TypeParameterDeclaration, TypeAliasDeclaration, SyntaxKind, FunctionExpression, Block, Identifier, ImportDeclaration, Node, ArrowFunction, Scope, ClassExpression } from "ts-morph";
+import { ClassDeclaration, MethodDeclaration, VariableStatement, FunctionDeclaration, VariableDeclaration, InterfaceDeclaration, ParameterDeclaration, ConstructorDeclaration, MethodSignature, SourceFile, ModuleDeclaration, PropertyDeclaration, PropertySignature, Decorator, GetAccessorDeclaration, SetAccessorDeclaration, CommentRange, EnumDeclaration, EnumMember, TypeParameterDeclaration, TypeAliasDeclaration, SyntaxKind, FunctionExpression, Block, Identifier, ImportDeclaration, Node, ArrowFunction, Scope, ClassExpression } from "ts-morph";
 import * as Famix from "../lib/famix/model/famix";
 import { calculate } from "../lib/ts-complex/cyclomatic-service";
 import * as fs from 'fs';
 import { logger } from "../analyze";
 import { getFQN } from "../fqn";
 import { EntityDictionary, InvocableType } from "../famix_functions/EntityDictionary";
-import { SourceFileDataArray, SourceFileDataMap, SourceFileDataSet } from "../famix_functions/SourceFileData";
+import { SourceFileDataMap, SourceFileDataSet } from "../famix_functions/SourceFileData";
 import { getClassesDeclaredInArrowFunctions } from "../famix_functions/helpersTsMorphElementsProcessing";
+import { ImportClauseCreator } from "../famix_functions/ImportClauseCreator";
 
 export type AccessibleTSMorphElement = ParameterDeclaration | VariableDeclaration | PropertyDeclaration | EnumMember;
 export type FamixID = number;
@@ -15,54 +16,21 @@ type ContainerTypes = SourceFile | ModuleDeclaration | FunctionDeclaration | Fun
 
 type ScopedTypes = Famix.ScriptEntity | Famix.Module | Famix.Function | Famix.Method | Famix.Accessor;
 
-/**
- * Checks if the file has any imports or exports to be considered a module
- * @param sourceFile A source file
- * @returns A boolean indicating if the file is a module
- */
-function isSourceFileAModule(sourceFile: SourceFile): boolean {
-    return sourceFile.getImportDeclarations().length > 0 || sourceFile.getExportedDeclarations().size > 0;
-}
-
 export class TypeScriptToFamixProcessor  {
     private entityDictionary: EntityDictionary;
+    private importClauseCreator: ImportClauseCreator;
 
+    // TODO: get rid of these maps
     public methodsAndFunctionsWithId = new SourceFileDataMap<number, InvocableType>(); // Maps the Famix method, constructor, getter, setter and function ids to their ts-morph method, constructor, getter, setter or function object
-
     public accessMap = new SourceFileDataMap<FamixID, AccessibleTSMorphElement>(); // Maps the Famix parameter, variable, property and enum value ids to their ts-morph parameter, variable, property or enum member object
-    // public classes = new SourceFileDataArray<ClassDeclaration>(); // Array of all the classes of the source files
-    // public interfaces = new SourceFileDataArray<InterfaceDeclaration>(); // Array of all the interfaces of the source files
-    public modules = new SourceFileDataArray<SourceFile>(); // Array of all the source files which are modules
-    public listOfExportMaps = new SourceFileDataArray<ReadonlyMap<string, ExportedDeclarations[]>>(); // Array of all the export maps
     private processedNodesWithTypeParams = new SourceFileDataSet<number>(); // Set of nodes that have been processed and have type parameters
 
     private currentCC: { [key: string]: number }; // Stores the cyclomatic complexity metrics for the current source file
 
     constructor(entityDictionary: EntityDictionary) {
         this.entityDictionary = entityDictionary;
+        this.importClauseCreator = new ImportClauseCreator(entityDictionary);
         this.currentCC = {};
-    }
-
-    private setCurrentSourceFileName(sourceFileName: string): void {
-        this.methodsAndFunctionsWithId.setSourceFileName(sourceFileName);
-        this.accessMap.setSourceFileName(sourceFileName);
-        // this.classes.setSourceFileName(sourceFileName);
-        // this.interfaces.setSourceFileName(sourceFileName);
-        this.modules.setSourceFileName(sourceFileName);
-        this.listOfExportMaps.setSourceFileName(sourceFileName);
-        this.processedNodesWithTypeParams.setSourceFileName(sourceFileName);
-
-        // this.entityDictionary.setCurrentSourceFileName(sourceFileName);
-    }
-
-    public removeNodesBySourceFile(sourceFile: string) {
-        this.methodsAndFunctionsWithId.removeBySourceFileName(sourceFile);
-        this.accessMap.removeBySourceFileName(sourceFile);
-        // this.classes.removeBySourceFileName(sourceFile);
-        // this.interfaces.removeBySourceFileName(sourceFile);
-        this.modules.removeBySourceFileName(sourceFile);
-        this.listOfExportMaps.removeBySourceFileName(sourceFile);
-        this.processedNodesWithTypeParams.removeBySourceFileName(sourceFile);
     }
 
     /**
@@ -96,7 +64,6 @@ export class TypeScriptToFamixProcessor  {
                 this.currentCC = {};
             }
 
-            this.setCurrentSourceFileName(file.getFilePath());
             this.processFile(file);
         });
     }
@@ -105,18 +72,8 @@ export class TypeScriptToFamixProcessor  {
      * Builds a Famix model for a source file
      * @param f A source file
      */
-    private processFile(f: SourceFile): void {
-        const isModule = isSourceFileAModule(f);
-    
-        if (isModule) {
-            this.modules.push(f);
-        }
-    
-        const exportMap = f.getExportedDeclarations();
-        if (exportMap) this.listOfExportMaps.push(exportMap);
-    
-        const fmxFile = this.entityDictionary.createOrGetFamixFile(f, isModule);
-    
+    private processFile(f: SourceFile): void {        
+        const fmxFile = this.entityDictionary.ensureFamixFile(f);
         logger.debug(`processFile: file: ${f.getBaseName()}, fqn = ${fmxFile.fullyQualifiedName}`);
     
         this.processComments(f, fmxFile);
@@ -135,7 +92,7 @@ export class TypeScriptToFamixProcessor  {
      * @returns A Famix.Module representing the module
      */
     private processModule(m: ModuleDeclaration): Famix.Module {
-        const fmxModule = this.entityDictionary.createOrGetFamixModule(m);
+        const fmxModule = this.entityDictionary.ensureFamixModule(m);
     
         logger.debug(`module: ${m.getName()}, (${m.getType().getText()}), ${fmxModule.fullyQualifiedName}`);
     
@@ -277,6 +234,7 @@ export class TypeScriptToFamixProcessor  {
         logger.debug(`Finding Modules:`);
         m.getModules().forEach(md => {
             const fmxModule = this.processModule(md);
+            // TODO: need to ensure that there are no duplicates
             fmxScope.addModule(fmxModule);
         });
     }
@@ -308,12 +266,14 @@ export class TypeScriptToFamixProcessor  {
     
         logger.debug(`Class: ${c.getName()}, (${c.getType().getText()}), fqn = ${fmxClass.fullyQualifiedName}`);
     
+            // TODO: need to ensure that there are no duplicates
         this.processComments(c, fmxClass);
     
         this.processDecorators(c, fmxClass);
     
         this.processStructuredType(c, fmxClass);
     
+            // TODO: need to ensure that there are no duplicates
         c.getConstructors().forEach(con => {
             const fmxCon = this.processMethod(con);
             fmxClass.addMethod(fmxCon);
@@ -829,99 +789,65 @@ export class TypeScriptToFamixProcessor  {
     // exports has name -> Declaration -- the declaration can be used to find the FamixElement
     
     // handle `import path = require("path")` for example
-    public processImportClausesForImportEqualsDeclarations(sourceFiles: Array<SourceFile>, exports: Array<ReadonlyMap<string, ExportedDeclarations[]>>): void {
+    public processImportClausesForImportEqualsDeclarations(sourceFiles: Array<SourceFile>): void {
         logger.info(`Creating import clauses from ImportEqualsDeclarations in source files:`);
         sourceFiles.forEach(sourceFile => {
             sourceFile.forEachDescendant(node => {
                 if (Node.isImportEqualsDeclaration(node)) {
-                    // You've found an ImportEqualsDeclaration
-                    logger.info("Declaration Name:", node.getName());
-                    logger.info("Module Reference Text:", node.getModuleReference().getText());
-                    // what's the name of the imported entity?
-                    // const importedEntity = node.getName();
-                    // create a famix import clause
-                    const namedImport = node.getNameNode();
-                    this.entityDictionary.oldCreateOrGetFamixImportClause({
-                        importDeclaration: node,
-                        importerSourceFile: sourceFile,
-                        moduleSpecifierFilePath: node.getModuleReference().getText(),
-                        importElement: namedImport,
-                        isInExports: exports.find(e => e.has(namedImport.getText())) !== undefined,
-                        isDefaultExport: false
-                    });
-                    // this.entityDictionary.createFamixImportClause(importedEntity, importingEntity);
+                    // TODO: implement getting all the imports with require (look up to tests for all the cases)
+                    this.importClauseCreator.ensureFamixImportClauseForImportEqualsDeclaration(node);
                 }
             });
-        }
-        );
+        });
     }
     
     /**
      * Builds a Famix model for the import clauses of the source files which are modules
      * @param modules An array of modules
-     * @param exports An array of maps of exported declarations
      */
-    public processImportClausesForModules(modules: Array<SourceFile>, exports: Array<ReadonlyMap<string, ExportedDeclarations[]>>): void {
+    public processImportClausesForModules(modules: Array<SourceFile>): void {
         logger.info(`Creating import clauses from ${modules.length} modules:`);
         modules.forEach(module => {
-            const modulePath = module.getFilePath();
-            module.getImportDeclarations().forEach(impDecl => {
-                logger.info(`Importing ${impDecl.getModuleSpecifierValue()} in ${modulePath}`);
-                const path = this.getModulePath(impDecl);
-    
-                impDecl.getNamedImports().forEach(namedImport => {
-                    logger.info(`Importing (named) ${namedImport.getName()} from ${impDecl.getModuleSpecifierValue()} in ${modulePath}`);
-                    const importedEntityName = namedImport.getName();
-                    const importFoundInExports = this.isInExports(exports, importedEntityName);
-                    logger.debug(`Processing ImportSpecifier: ${namedImport.getText()}, pos=${namedImport.getStart()}`);
-                    this.entityDictionary.oldCreateOrGetFamixImportClause({
-                        importDeclaration: impDecl,
-                        importerSourceFile: module,
-                        moduleSpecifierFilePath: path,
-                        importElement: namedImport,
-                        isInExports: importFoundInExports,
-                        isDefaultExport: false
-                    });
+            const exportDeclarations = module.getExportDeclarations();
+            const reExports = Array.from(exportDeclarations.entries())
+                .flatMap(([, declarations]) => declarations)
+                .filter(declaration => declaration.hasModuleSpecifier());
+
+            reExports.forEach(reExport => {                
+                const namedExports = reExport.getNamedExports();
+                namedExports.forEach(namedExport => {
+                    this.importClauseCreator.ensureFamixImportClauseForNamedImport(
+                        reExport, namedExport, module,
+                    );
                 });
-    
+
+                if (reExport.isNamespaceExport()) {
+                    this.importClauseCreator.ensureFamixImportClauseForNamespaceExports(reExport, module);
+                }
+            });
+
+            module.getImportDeclarations().forEach(impDecl => {
+                impDecl.getNamedImports().forEach(namedImport => {
+                    this.importClauseCreator.ensureFamixImportClauseForNamedImport(
+                        impDecl, namedImport, module,
+                    );
+                });
+
                 const defaultImport = impDecl.getDefaultImport();
                 if (defaultImport !== undefined) {
-                    logger.info(`Importing (default) ${defaultImport.getText()} from ${impDecl.getModuleSpecifierValue()} in ${modulePath}`);
-                    logger.debug(`Processing Default Import: ${defaultImport.getText()}, pos=${defaultImport.getStart()}`);
-                    this.entityDictionary.oldCreateOrGetFamixImportClause({
-                        importDeclaration: impDecl,
-                        importerSourceFile: module,
-                        moduleSpecifierFilePath: path,
-                        importElement: defaultImport,
-                        isInExports: false,
-                        isDefaultExport: true
-                    });
+                    this.importClauseCreator.ensureFamixImportClauseForDefaultImport(
+                        impDecl, defaultImport, module
+                    );
                 }
     
                 const namespaceImport = impDecl.getNamespaceImport();
                 if (namespaceImport !== undefined) {
-                    logger.info(`Importing (namespace) ${namespaceImport.getText()} from ${impDecl.getModuleSpecifierValue()} in ${modulePath}`);
-                    this.entityDictionary.oldCreateOrGetFamixImportClause({
-                        importDeclaration: impDecl,
-                        importerSourceFile: module,
-                        moduleSpecifierFilePath: path,
-                        importElement: namespaceImport,
-                        isInExports: false,
-                        isDefaultExport: false
-                    });
+                    this.importClauseCreator.ensureFamixImportClauseForNamespaceImport(
+                        impDecl, namespaceImport, module
+                    );
                 }
             });
         });
-    }
-    
-    private isInExports(exports: ReadonlyMap<string, ExportedDeclarations[]>[], importedEntityName: string) {
-        let importFoundInExports = false;
-        exports.forEach(e => {
-            if (e.has(importedEntityName)) {
-                importFoundInExports = true;
-            }
-        });
-        return importFoundInExports;
     }
 
     private processInheritanceForClass(cls: ClassDeclaration) {

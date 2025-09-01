@@ -5,7 +5,11 @@ import { Logger } from "tslog";
 import { EntityDictionary, EntityDictionaryConfig } from "./famix_functions/EntityDictionary";
 import path from "path";
 import { TypeScriptToFamixProcessor  } from "./analyze_functions/process_functions";
-import { getFamixIndexFileAnchorFileName } from "./famix_functions/famixIndexFileAnchorHelper";
+import { getFamixIndexFileAnchorFileName } from "./helpers";
+import { isSourceFileAModule } from "./famix_functions/helpersTsMorphElementsProcessing";
+import { FamixBaseElement } from "./lib/famix/famix_base_element";
+import { getDirectDependentAssociations, getSourceFilesToUpdate, removeDependentAssociations } from "./helpers";
+import { getTransientDependentEntities } from "./helpers/transientDependencyResolverHelper";
 
 export const logger = new Logger({ name: "ts2famix", minLevel: 2 });
 
@@ -70,29 +74,23 @@ export class Importer {
         this.processReferences(onlyTypeScriptFiles, onlyTypeScriptFiles);
     }
 
-    private processReferences(sourceFiles: SourceFile[], allExistingSourceFiles: SourceFile[]): void {
+    private processReferences(sourceFiles: SourceFile[], allExistingSourceFiles: SourceFile[]): void {        
         sourceFiles.forEach(sourceFile => {
             const fileName = sourceFile.getFilePath();
             const accesses = this.processFunctions.accessMap.getBySourceFileName(fileName);
             const methodsAndFunctionsWithId = this.processFunctions.methodsAndFunctionsWithId.getBySourceFileName(fileName);
-            // const classes = this.processFunctions.classes.getBySourceFileName(fileName);
-            // const interfaces = this.processFunctions.interfaces.getBySourceFileName(fileName);
-            const modules = this.processFunctions.modules.getBySourceFileName(fileName);
-            const exports = this.processFunctions.listOfExportMaps.getBySourceFileName(fileName);
-
-            // this.entityDictionary.setCurrentSourceFileName(fileName);
 
             // TODO: check if it is working correctly
-            this.processFunctions.processImportClausesForImportEqualsDeclarations(allExistingSourceFiles, exports);
-            this.processFunctions.processImportClausesForModules(modules, exports);
             this.processFunctions.processAccesses(accesses);
             this.processFunctions.processInvocations(methodsAndFunctionsWithId);
-            // this.processFunctions.processInheritances(classes, interfaces, this.processFunctions.interfaces.getAll());
             
-            // this.processFunctions.processConcretisations(classes, interfaces, methodsAndFunctionsWithId);
             //TODO: fix concretisatoion
             this.processFunctions.processConcretisations([], [], methodsAndFunctionsWithId);
         });
+        this.processFunctions.processImportClausesForImportEqualsDeclarations(allExistingSourceFiles);
+        
+        const modules = sourceFiles.filter(f => isSourceFileAModule(f));
+        this.processFunctions.processImportClausesForModules(modules);
     }
 
     /**
@@ -132,27 +130,35 @@ export class Importer {
     }
 
     public updateFamixModelIncrementally(sourceFileChangeMap: Map<SourceFileChangeType, SourceFile[]>): void {
-        const allSourceFiles = Array.from(sourceFileChangeMap.values()).flat();
-        const sourceFilesToCreateEntities = [
-            ...(sourceFileChangeMap.get(SourceFileChangeType.Create) || []),
-            ...(sourceFileChangeMap.get(SourceFileChangeType.Update) || []),
-        ];
+        const allChangedSourceFiles = Array.from(sourceFileChangeMap.values()).flat();
 
-        allSourceFiles.forEach(
+        const removedEntities: FamixBaseElement[] = [];
+        allChangedSourceFiles.forEach(
             file => {
                 const filePath = getFamixIndexFileAnchorFileName(file.getFilePath(), this.entityDictionary.getAbsolutePath());
-                this.entityDictionary.famixRep.removeEntitiesBySourceFile(filePath);
-                // this.entityDictionary.removeEntitiesBySourceFilePath(filePath);
-                // this.processFunctions.removeNodesBySourceFile(filePath);
+                const removed = this.entityDictionary.famixRep.removeEntitiesBySourceFile(filePath);
+                removedEntities.push(...removed);
             }
         );
 
-        this.processFunctions.processFiles(sourceFilesToCreateEntities);
+        const allSourceFiles = this.project.getSourceFiles();
+        const directDependentAssociations = getDirectDependentAssociations(removedEntities);
+        const transientDependentAssociations = getTransientDependentEntities(this.entityDictionary, sourceFileChangeMap);
+
+        const associationsToRemove = [...directDependentAssociations, ...transientDependentAssociations];
+
+        removeDependentAssociations(this.entityDictionary.famixRep, associationsToRemove);
+
+        const sourceFilesToEnsure = getSourceFilesToUpdate(
+            associationsToRemove, sourceFileChangeMap, allSourceFiles, this.entityDictionary.getAbsolutePath()
+        );
+
+        this.processFunctions.processFiles(sourceFilesToEnsure);
         const sourceFilesToDelete = sourceFileChangeMap.get(SourceFileChangeType.Delete) || [];
-        const existingSourceFiles = this.project.getSourceFiles().filter(
+        const existingSourceFiles = allSourceFiles.filter(
             file => !sourceFilesToDelete.includes(file)
         );
-        this.processReferences(sourceFilesToCreateEntities, existingSourceFiles);
+        this.processReferences(sourceFilesToEnsure, existingSourceFiles);
 
     }
 

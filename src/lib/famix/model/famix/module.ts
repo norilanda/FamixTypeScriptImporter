@@ -34,7 +34,7 @@ export class Module extends ScriptEntity {
 
     private _isModule: boolean = true;
 
-    private _parentScope!: ScopingEntity;
+    private _parentScope?: ScopingEntity;
     // incomingImports are in NamedEntity
     private _outgoingImports: Set<ImportClause> = new Set();
 
@@ -62,7 +62,7 @@ export class Module extends ScriptEntity {
         exporter.addProperty("outgoingImports", this.outgoingImports);
     }
 
-    get parentScope() {
+    get parentScope(): ScopingEntity | undefined {
         return this._parentScope;
     }
 
