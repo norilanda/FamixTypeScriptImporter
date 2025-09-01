@@ -78,9 +78,11 @@ function getCompilerPatterns(configPath: string) {
     const rawConfig = parsedCommandLine.raw;
     const include: string[] = rawConfig.include ?? [] as string[];
     const files: string[] = rawConfig.files ?? [] as string[];
+    const outputDir = parsedCommandLine.options.outDir;
     const exclude: string[] = rawConfig.exclude ?? [
-        "node_modules", parsedCommandLine.options.outDir
-    ].filter(Boolean) as string[];
+        "node_modules",
+        ...(outputDir ? [outputDir] : [])
+    ];
     
     return { include, files, exclude };
 }
