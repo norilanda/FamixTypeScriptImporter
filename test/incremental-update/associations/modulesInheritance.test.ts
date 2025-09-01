@@ -198,14 +198,14 @@ describe('Change the inheritance between several files', () => {
       .addSourceFile(classCFileName, classCCode);
     const { importer, famixRep } = testProjectBuilder.build();
 
-    const sourceFile = testProjectBuilder
+    let sourceFile = testProjectBuilder
       .changeSourceFile(classAFileName, classACodeChanged);
 
     // act
     let fileChangesMap = getUpdateFileChangesMap(sourceFile);
     importer.updateFamixModelIncrementally(fileChangesMap);
     
-    testProjectBuilder.changeSourceFile(classAFileName, classACodeChangedTwice);
+    sourceFile = testProjectBuilder.changeSourceFile(classAFileName, classACodeChangedTwice);
     
     fileChangesMap = getUpdateFileChangesMap(sourceFile);
     importer.updateFamixModelIncrementally(fileChangesMap);
@@ -247,14 +247,14 @@ describe('Change the inheritance between several files', () => {
       .addSourceFile(codeCFileName, codeC);
     const { importer, famixRep } = testProjectBuilder.build();
 
-    const sourceFile = testProjectBuilder
+    let sourceFile = testProjectBuilder
       .changeSourceFile(codeAFileName, codeAChanged);
 
     // act
     let fileChangesMap = getUpdateFileChangesMap(sourceFile);
     importer.updateFamixModelIncrementally(fileChangesMap);
     
-    testProjectBuilder.changeSourceFile(codeAFileName, codeAChangedTwice);
+    sourceFile = testProjectBuilder.changeSourceFile(codeAFileName, codeAChangedTwice);
     
     fileChangesMap = getUpdateFileChangesMap(sourceFile);
     importer.updateFamixModelIncrementally(fileChangesMap);
