@@ -5,7 +5,7 @@
 
 ✅ - tested  
 🕔 - test later, lower priority  
-🐤 - does not passes
+🐤 - does not pass
 
 ## Extension Activation Tests
 
