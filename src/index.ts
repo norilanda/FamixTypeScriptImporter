@@ -26,6 +26,9 @@ export const generateModelForProject = (tsConfigFilePath: string, baseUrl: strin
     return jsonOutput;
 };
 
+// NOTE: when using ts-morph Project in another project (e.g., in a VSCode extension),
+// the instanceof operator may not work as expected due to multiple versions of ts-morph being loaded.
+// Therefore, we provide a utility function to create the Project instance.
 export const getTsMorphProject = (tsConfigFilePath: string, baseUrl: string) => {
     return new Project({
         tsConfigFilePath,

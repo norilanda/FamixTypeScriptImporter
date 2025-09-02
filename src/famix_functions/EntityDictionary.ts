@@ -14,7 +14,6 @@ import { logger } from "../analyze";
 import GraphemeSplitter = require('grapheme-splitter');
 import * as Helpers from "./helpers_creation";
 import * as FQNFunctions from "../fqn";
-import { SourceFileDataMap } from "./SourceFileData";
 import { getFamixIndexFileAnchorFileName } from "../helpers";
 import { FullyQualifiedNameEntity } from "../lib/famix/model/interfaces";
 
@@ -43,17 +42,17 @@ export class EntityDictionary {
     private config: EntityDictionaryConfig;
     private absolutePath: string = "";
     public famixRep = new FamixRepository();
-    // TODO: get rid of all the maps
-    private fmxAliasMap = new SourceFileDataMap<string, Famix.Alias>(); // Maps the alias names to their Famix model
-    private fmxTypeMap = new SourceFileDataMap<TSMorphTypeDeclaration, Famix.Type | Famix.ParameterType>(); // Maps the types declarations to their Famix model
-    private fmxPrimitiveTypeMap = new SourceFileDataMap<string, Famix.PrimitiveType>(); // Maps the primitive type names to their Famix model
-    private fmxFunctionAndMethodMap = new SourceFileDataMap<string, Famix.Function | Famix.ParametricFunction | Famix.Method | Famix.ParametricMethod>; // Maps the function names to their Famix model
-    private fmxArrowFunctionMap = new SourceFileDataMap<string, Famix.ArrowFunction>; // Maps the function names to their Famix model
-    private fmxParameterMap = new SourceFileDataMap<ParameterDeclaration, Famix.Parameter>(); // Maps the parameters to their Famix model
-    private fmxVariableMap = new SourceFileDataMap<VariableDeclaration, Famix.Variable>(); // Maps the variables to their Famix model
-    private fmxEnumMap = new SourceFileDataMap<EnumDeclaration, Famix.Enum>(); // Maps the enum names to their Famix model
-    public fmxElementObjectMap = new SourceFileDataMap<Famix.Entity,TSMorphObjectType>();
-    public tsMorphElementObjectMap = new SourceFileDataMap<TSMorphObjectType,Famix.Entity>();
+    // TODO: get rid of all the maps. We don't need to store a state
+    private fmxAliasMap = new Map<string, Famix.Alias>(); // Maps the alias names to their Famix model
+    private fmxTypeMap = new Map<TSMorphTypeDeclaration, Famix.Type | Famix.ParameterType>(); // Maps the types declarations to their Famix model
+    private fmxPrimitiveTypeMap = new Map<string, Famix.PrimitiveType>(); // Maps the primitive type names to their Famix model
+    private fmxFunctionAndMethodMap = new Map<string, Famix.Function | Famix.ParametricFunction | Famix.Method | Famix.ParametricMethod>; // Maps the function names to their Famix model
+    private fmxArrowFunctionMap = new Map<string, Famix.ArrowFunction>; // Maps the function names to their Famix model
+    private fmxParameterMap = new Map<ParameterDeclaration, Famix.Parameter>(); // Maps the parameters to their Famix model
+    private fmxVariableMap = new Map<VariableDeclaration, Famix.Variable>(); // Maps the variables to their Famix model
+    private fmxEnumMap = new Map<EnumDeclaration, Famix.Enum>(); // Maps the enum names to their Famix model
+    public fmxElementObjectMap = new Map<Famix.Entity,TSMorphObjectType>();
+    public tsMorphElementObjectMap = new Map<TSMorphObjectType,Famix.Entity>();
     
     private UNKNOWN_VALUE = '(unknown due to parsing error)'; // The value to use when a name is not usable
             
@@ -1744,19 +1743,6 @@ export class EntityDictionary {
             logger.debug("Setting fully qualified name for " + famixElement.getJSON() + " to " + fqn);
             (famixElement as Famix.NamedEntity).fullyQualifiedName = fqn;
         } 
-    }
-
-    public removeEntitiesBySourceFilePath(sourceFilePath: string) {
-        this.fmxAliasMap.removeBySourceFileName(sourceFilePath);
-        this.fmxTypeMap.removeBySourceFileName(sourceFilePath);
-        this.fmxPrimitiveTypeMap.removeBySourceFileName(sourceFilePath);
-        this.fmxFunctionAndMethodMap.removeBySourceFileName(sourceFilePath);
-        this.fmxArrowFunctionMap.removeBySourceFileName(sourceFilePath);
-        this.fmxParameterMap.removeBySourceFileName(sourceFilePath);
-        this.fmxVariableMap.removeBySourceFileName(sourceFilePath);
-        this.fmxEnumMap.removeBySourceFileName(sourceFilePath);
-        this.fmxElementObjectMap.removeBySourceFileName(sourceFilePath);
-        this.tsMorphElementObjectMap.removeBySourceFileName(sourceFilePath);
     }
 }
 

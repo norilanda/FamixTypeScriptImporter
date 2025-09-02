@@ -55,6 +55,5 @@ describe('Delete classes in a single file', () => {
     expect(deletedClass1).toBeUndefined();
     expect(deletedClass2).toBeUndefined();
     expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
-    // TODO: how to handle primitive types? Should we remove them from the Famix if nothing references them?
     });
 });

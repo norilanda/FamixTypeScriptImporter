@@ -76,8 +76,6 @@ describe('Change the inheritance in a single file', () => {
     // assert
     const expectedFamixRepo = createExpectedFamixModel(sourceFileName, sourceCodeWithoutInheritance);
 
-    // ! There is a bug where the createOrGetFamixClass is called during the inheritance creation:
-    // the 2 indexAncrots are added
     expectRepositoriesToHaveSameStructure(famixRep, expectedFamixRepo);
   });
 
@@ -129,11 +127,6 @@ describe('Change the inheritance in a single file', () => {
 
   it('should add new inheritance association between class and interface', () => {
     // arrange    
-    // const sourceCodeWithInterfaceWithoutInheritance = `
-    //     interface ${superClassName} { }
-        
-    //     class ${subClassName} { }
-    // `;
     const sourceCodeWithInterfaceWithoutInheritance = `
         interface ${superClassName} { }
         interface A { }
