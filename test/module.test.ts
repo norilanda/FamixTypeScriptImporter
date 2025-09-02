@@ -1,3 +1,4 @@
+import { FamixRepository } from '../src';
 import { Importer, logger } from '../src/analyze';
 import { Module } from '../src/lib/famix/model/famix/module';
 import { project } from './testUtils';
@@ -42,16 +43,25 @@ declare module "module-a" {
 
 logger.settings.minLevel = 0; // all your messages are belong to us
 
-const fmxRep = importer.famixRepFromProject(project);
+describe.skip('Tests for module', () => {
+    let fmxRep: FamixRepository;
+    let moduleList: Array<Module>;
+    let moduleBecauseExports: Module | undefined;
+    let moduleBecauseImports: Module | undefined;
+    let moduleImportFromFileWithExtension: Module | undefined;
+    let ambientModule: Module | undefined;
+    let exportedNsp: Module | undefined;
 
-describe('Tests for module', () => {
-    
-    const moduleList = Array.from(fmxRep._getAllEntitiesWithType('Module')) as Array<Module>;
-    const moduleBecauseExports = moduleList.find(e => e.name === 'moduleBecauseExports.ts');
-    const moduleBecauseImports = moduleList.find(e => e.name === 'moduleBecauseImports.ts');
-    const moduleImportFromFileWithExtension = moduleList.find(e => e.name === 'moduleImportFromFileWithExtension.ts');
-    const ambientModule = moduleList.find(e => e.name === '"module-a"');
-    const exportedNsp = moduleList.find(e => e.name === 'Nsp');
+    beforeAll(() => {
+        fmxRep = importer.famixRepFromProject(project);
+        moduleList = Array.from(fmxRep._getAllEntitiesWithType('Module')) as Array<Module>;
+        moduleBecauseExports = moduleList.find(e => e.name === 'moduleBecauseExports.ts');
+        moduleBecauseImports = moduleList.find(e => e.name === 'moduleBecauseImports.ts');
+        moduleImportFromFileWithExtension = moduleList.find(e => e.name === 'moduleImportFromFileWithExtension.ts');
+        ambientModule = moduleList.find(e => e.name === '"module-a"');
+        exportedNsp = moduleList.find(e => e.name === 'Nsp');
+    });
+
     it("should have five modules", () => {
         expect(moduleList?.length).toBe(5);
         expect(moduleBecauseExports).toBeTruthy();

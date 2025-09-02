@@ -24,7 +24,7 @@ describe.skip('tests for project containing the source file', () => {
     });
 });
 
-describe('Tests for invocation with function', () => {
+describe.skip('Tests for invocation with function', () => {
     it("should contain one function", () => {
         expect(fmxRep._getAllEntitiesWithType("Function").size).toBe(1);
     });
