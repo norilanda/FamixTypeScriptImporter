@@ -50,3 +50,6 @@ To test the extension run the `npm run test` inside the `vscode-extension` folde
 - Switch to the Run and Debug View in the Sidebar (Ctrl+Shift+D).
 - Select `Integration Tests` or `Smoke Tests` from the drop down (if it is not already).
 - Press ▷ to run the launch config (F5).
+
+### Manual testing
+Some manual test cases are described in the [`test-cases.md`](./test-cases.md) file.

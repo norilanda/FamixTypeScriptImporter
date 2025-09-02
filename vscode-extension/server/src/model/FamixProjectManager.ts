@@ -51,6 +51,7 @@ export class FamixProjectManager {
             if (sourceFile) {
                 if (change === SourceFileChangeType.Delete) {
                     // NOTE: do not remove sourceFile from the project yet, it will forget the whole file
+                    // https://ts-morph.com/details/source-files#refresh-from-file-system
                     return { sourceFile, change };
                 }
                 const result = await sourceFile.refreshFromFileSystem();
