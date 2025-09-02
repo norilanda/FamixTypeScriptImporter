@@ -5,7 +5,6 @@ import * as fs from 'fs';
 import { logger } from "../analyze";
 import { getFQN } from "../fqn";
 import { EntityDictionary, InvocableType } from "../famix_functions/EntityDictionary";
-import { SourceFileDataMap, SourceFileDataSet } from "../famix_functions/SourceFileData";
 import { getClassesDeclaredInArrowFunctions } from "../famix_functions/helpersTsMorphElementsProcessing";
 import { ImportClauseCreator } from "../famix_functions/ImportClauseCreator";
 
@@ -20,10 +19,10 @@ export class TypeScriptToFamixProcessor  {
     private entityDictionary: EntityDictionary;
     private importClauseCreator: ImportClauseCreator;
 
-    // TODO: get rid of these maps
-    public methodsAndFunctionsWithId = new SourceFileDataMap<number, InvocableType>(); // Maps the Famix method, constructor, getter, setter and function ids to their ts-morph method, constructor, getter, setter or function object
-    public accessMap = new SourceFileDataMap<FamixID, AccessibleTSMorphElement>(); // Maps the Famix parameter, variable, property and enum value ids to their ts-morph parameter, variable, property or enum member object
-    private processedNodesWithTypeParams = new SourceFileDataSet<number>(); // Set of nodes that have been processed and have type parameters
+    // TODO: get rid of these maps and set
+    public methodsAndFunctionsWithId = new Map<number, InvocableType>(); // Maps the Famix method, constructor, getter, setter and function ids to their ts-morph method, constructor, getter, setter or function object
+    public accessMap = new Map<FamixID, AccessibleTSMorphElement>(); // Maps the Famix parameter, variable, property and enum value ids to their ts-morph parameter, variable, property or enum member object
+    private processedNodesWithTypeParams = new Set<number>(); // Set of nodes that have been processed and have type parameters
 
     private currentCC: { [key: string]: number }; // Stores the cyclomatic complexity metrics for the current source file
 

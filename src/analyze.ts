@@ -75,18 +75,7 @@ export class Importer {
     }
 
     private processReferences(sourceFiles: SourceFile[], allExistingSourceFiles: SourceFile[]): void {        
-        sourceFiles.forEach(sourceFile => {
-            const fileName = sourceFile.getFilePath();
-            const accesses = this.processFunctions.accessMap.getBySourceFileName(fileName);
-            const methodsAndFunctionsWithId = this.processFunctions.methodsAndFunctionsWithId.getBySourceFileName(fileName);
-
-            // TODO: check if it is working correctly
-            this.processFunctions.processAccesses(accesses);
-            this.processFunctions.processInvocations(methodsAndFunctionsWithId);
-            
-            //TODO: fix concretisatoion
-            this.processFunctions.processConcretisations([], [], methodsAndFunctionsWithId);
-        });
+        // TODO: process Access, Invocations, Concretisations
         this.processFunctions.processImportClausesForImportEqualsDeclarations(allExistingSourceFiles);
         
         const modules = sourceFiles.filter(f => isSourceFileAModule(f));
