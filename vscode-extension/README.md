@@ -44,7 +44,7 @@ code .
 
 ## Testing the Extension
 ### Run Tests
-To test the extension run the `npm run test` inside the `vscode-extension` folder. This will run all the tests for the client and server.
+To test the extension run the `npm run test` inside the `vscode-extension` folder. This will run all the tests for the client and server. For the client it will run the integration and smoke tests, for which it will download (the location of the downloaded files will be `/.vscode-tests`) and launch a separate instance of VSCode. While downloading the files it may take some time, so it may be a reason of a timeout. If that happens, just run the command again. If there is an error with downloading the file - try to delete the `/.vscode-tests` folder and run the command again.
 
 ### Debug Tests
 - Switch to the Run and Debug View in the Sidebar (Ctrl+Shift+D).

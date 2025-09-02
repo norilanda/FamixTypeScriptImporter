@@ -34,10 +34,10 @@ suite('Smoke Tests', () => {
   
         try {
             const mockFilePath = 'c:\\path\\to\\mock\\tsconfig.json';
-            const response = await client.sendRequest<{success: boolean; error?: string; outputPath?: string}>('generateModelForProject', { filePath: mockFilePath });
+            const response = await client.sendRequest<{result?: null; error?: string;}>('generateModelForProject', { filePath: mockFilePath });
       
             assert.ok(response, 'Should receive a response from the server');
-            assert.strictEqual(response.success, false, 'Response should indicate failure due to mock path');
+            assert.strictEqual(response.result, undefined, 'Response should indicate failure due to mock path');
             assert.ok(response.error, 'Response should include an error message');
         } catch (error) {
             assert.fail(`Failed to communicate with the server: ${error}`);
